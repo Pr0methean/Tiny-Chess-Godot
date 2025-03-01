@@ -50,14 +50,14 @@ public class Bot_1337 : IChessBot
         {
             if (iAmABareKing) {
                 Debug.WriteLine("Skipping material evaluation: I'm a bare king!");
-                return long.MinValue;
+                return -1_000_000_000_000L;
             } else {
                 ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
                 bool opponentIsBareKing = isBareKing(opponentBitboard);
                 if (opponentIsBareKing)
                 {
                     Debug.WriteLine("Skipping material evaluation: Opponent is a bare king!");
-                    return long.MaxValue;
+                    return 1_000_000_000_000L;
                 }
             }
             long materialEval = 0;
@@ -105,7 +105,7 @@ public class Bot_1337 : IChessBot
             {
                 if (board.IsInCheckmate())
                 {
-                    return long.MaxValue;
+                    return 1_000_000_000_000L;
                 }
 
                 if (board.IsDraw())
@@ -113,14 +113,15 @@ public class Bot_1337 : IChessBot
                     if (iAmABareKing)
                     {
                         // A draw is as good as a win for a bare king since it's the best he can do
-                        return long.MaxValue;
+                        return 1_000_000_000_000L;
                     }
                     if (materialEval < 0)
                     {
                         // Opponent is ahead on material, so favor the draw
                         return 0;
                     }
-                    return long.MinValue;
+
+                    return -1_000_000_000_000L;
                 }
 
                 Debug.WriteLine("Evaluating {0}", move);
@@ -130,7 +131,7 @@ public class Bot_1337 : IChessBot
                     if (isBareKing(opponentBitboardAfterMove))
                     {
                         Debug.WriteLine("This move will leave the opponent a bare king!");
-                        return long.MaxValue - 1;
+                        return 999_999_999_999L;
                     }
                 }
                 Move[] responses = board.GetLegalMoves();
@@ -179,7 +180,6 @@ public class Bot_1337 : IChessBot
                                                       [(int)(capturedInResponseToResponse ?? PieceType.None)] *
                                                   ENEMY_PIECE_VALUE_MULTIPLIER));
                 }
-
                 KeyValuePair<Move, long>? bestResponse = responseScores.MaxBy(pair => pair.Value);
                 Debug.WriteLine("Best capturing response: {0} with score {1}", bestResponse?.Key, bestResponse?.Value);
                 var score = -responses.Sum(m =>
