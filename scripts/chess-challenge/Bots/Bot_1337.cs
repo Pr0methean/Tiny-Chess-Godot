@@ -93,7 +93,7 @@ public class Bot_1337 : IChessBot
         if (materialEval > 0 && fiftyMoveCounter >= 60)
         {
             // Player that's ahead wants to reset the 50-move-rule counter.
-            long fiftyMoveResetValue = fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter;
+            fiftyMoveResetValue = fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter;
             Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
         }
         long bestScore = long.MinValue;
