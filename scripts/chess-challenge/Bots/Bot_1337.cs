@@ -17,12 +17,14 @@ public class Bot_1337 : IChessBot
     private static long CHECK_BONUS = 600_000;
     private static long CASTLING_BONUS = 2_000_000;
     private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 1_000_000 };
-    private static long[] PIECE_RANK_PUSH_VALUES = { 0, 300, 400, 600, 1200, 1600, 300 };
-    private static long[] PIECE_FILE_PUSH_VALUES = { 0, 100, 750, 600, 1200, 1600, 300 };
+    private static long[] PIECE_RANK_PUSH_VALUES = { 0, 200, 300, 400, 800, 1200, 300 };
+    private static long[] PIECE_FILE_PUSH_VALUES = { 0, 100, 500, 400, 600, 1200, 300 };
     private static long[] PIECE_SWARM_VALUES = { 0, 50, 200, 333, 500, 500, 100 };
     private static long[] WHITE_PASSED_PAWN_VALUES = { 0, 0, 0, 0, 16, 64, 128, 0 };
     private static long[] BLACK_PASSED_PAWN_VALUES = { 0, 128, 64, 16, 0, 0, 0, 0 };
-    private static int[] FILE_CENTER_DISTANCE_VALUES = { 6, 3, 1, 0, 0, 1, 3, 6 };
+    private static long[] FILE_CENTER_DISTANCE_VALUES = { 6, 3, 1, 0, 0, 1, 3, 6 };
+    private static long[] WHITE_RANK_ADVANCEMENT_VALUES = { 0, 3, 5, 7, 9, 11, 12, 13 };
+    private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 13, 12, 11, 9, 7, 5, 3, 0 };
     private Random random = new();
     
     public Move Think(Board board, Timer timer)
@@ -120,17 +122,34 @@ public class Bot_1337 : IChessBot
             }
             Move[] responses = board.GetLegalMoves();
             Debug.WriteLine("Responses: {0}", responses.Length);
-            long? worstCapture = responses.Max<Move,long?>(response =>
-            {
-                (PieceType captured, PieceType counterCaptured) = bestExchange(board, response);
-                return (PIECE_VALUES[(int)captured] * MY_PIECE_VALUE_MULTIPLIER
-                                   - PIECE_VALUES[(int)counterCaptured] * ENEMY_PIECE_VALUE_MULTIPLIER);
-            });
-            Debug.WriteLine("Worst capturing response: {0}", worstCapture);
+            Dictionary<Move,long> responseScores = new();
+            foreach (var response in responses) {
+                PieceType capturedInResponse;
+                PieceType? capturedInResponseToResponse;
+                board.MakeMove(response);
+                bool isMate = board.IsInCheckmate();
+                if (isMate)
+                {
+                    capturedInResponse = PieceType.King;
+                    capturedInResponseToResponse = PieceType.None;
+                }
+                else
+                {
+                    capturedInResponse = response.CapturePieceType;
+                    capturedInResponseToResponse = board.GetLegalMoves()
+                        .Max(responseToResponse => (PieceType?) capturedOrMatedPieceType(board, responseToResponse));
+                    Debug.WriteLine("Line {0} {1} leads to exchange of {2} for {3}", move, response, capturedInResponse, capturedInResponseToResponse);
+                }
+                board.UndoMove(response);
+                responseScores.Add(response, (PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
+                        - PIECE_VALUES[(int)(capturedInResponseToResponse ?? PieceType.None)] * ENEMY_PIECE_VALUE_MULTIPLIER));
+            }
+            KeyValuePair<Move, long>? bestResponse = responseScores.MaxBy(pair => pair.Value);
+            Debug.WriteLine("Best capturing response: {0} with score {1}", bestResponse?.Key, bestResponse?.Value);
             score = -responses.Sum(m =>
                         PENALTY_PER_ENEMY_MOVE
                         + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
-                    - Math.Max(0, worstCapture ?? 0L);
+                    - Math.Max(0, bestResponse?.Value ?? 0L);
             Debug.WriteLine("Score based on responses: {0}", score);
             if (move.IsCapture)
             {
@@ -191,8 +210,9 @@ public class Bot_1337 : IChessBot
             int squaresFromKingAfter = Math.Min(Math.Abs(ranksBehindKingAfter),
                 Math.Abs(move.TargetSquare.File - enemyKingFile));
             int swarmAdjustment = squaresFromKingBefore - squaresFromKingAfter;
-            int rankPushAdjustment = (move.StartSquare.Rank - move.TargetSquare.Rank) * negateIfWhite;
-            int filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
+            long[] myRankValues = iAmWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES;
+            long rankPushAdjustment = myRankValues[move.StartSquare.Rank] - myRankValues[move.TargetSquare.Rank];
+            long filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
                                      FILE_CENTER_DISTANCE_VALUES[move.TargetSquare.File];
             Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
                             filePushAdjustment);
@@ -211,26 +231,6 @@ public class Bot_1337 : IChessBot
         return (Move)bestMove!;
     }
 
-    private static (PieceType, PieceType) bestExchange(Board board, Move response)
-    {
-        board.MakeMove(response);
-        bool isMate = board.IsInCheckmate();
-        (PieceType, PieceType) result;
-        if (isMate)
-        {
-            result = (PieceType.King, PieceType.None);
-        }
-        else
-        {
-            PieceType captured = response.CapturePieceType;
-            PieceType? counterCaptured = board.GetLegalMoves()
-                .Max(m => (PieceType?) capturedOrMatedPieceType(board, m));
-            result = (captured, counterCaptured ?? PieceType.None);
-        }
-        board.UndoMove(response);
-        return result;
-    }
-    
     private static PieceType capturedOrMatedPieceType(Board board, Move response)
     {
         board.MakeMove(response);
