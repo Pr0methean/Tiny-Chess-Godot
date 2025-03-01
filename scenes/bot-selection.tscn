@@ -202,6 +202,82 @@ text = "Wins: 0  Draws: 0  Losses: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="Tier 1" type="HBoxContainer" parent="Selection Menu/Bot Tiers"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_constants/separation = 25
+alignment = 1
+
+[node name="Button2" type="Button" parent="Selection Menu/Bot Tiers/Tier 1"]
+custom_minimum_size = Vector2(390.91, 9.085)
+layout_mode = 2
+focus_mode = 0
+theme = ExtResource("3_sl6y8")
+text = "Bot Name"
+
+[node name="Score" type="Label" parent="Selection Menu/Bot Tiers/Tier 1/Button2"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 3.0
+offset_top = 32.0
+offset_right = -8.45999
+offset_bottom = 96.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.305882)
+theme_override_fonts/font = ExtResource("3_4imav")
+theme_override_font_sizes/font_size = 24
+text = "Wins: 0  Draws: 0  Losses: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Button3" type="Button" parent="Selection Menu/Bot Tiers/Tier 1"]
+custom_minimum_size = Vector2(390.91, 9.085)
+layout_mode = 2
+focus_mode = 0
+theme = ExtResource("3_sl6y8")
+text = "Bot Name"
+
+[node name="Score" type="Label" parent="Selection Menu/Bot Tiers/Tier 1/Button3"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 3.0
+offset_top = 32.0
+offset_right = -8.45999
+offset_bottom = 96.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.305882)
+theme_override_fonts/font = ExtResource("3_4imav")
+theme_override_font_sizes/font_size = 24
+text = "Wins: 0  Draws: 0  Losses: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Button4" type="Button" parent="Selection Menu/Bot Tiers/Tier 1"]
+custom_minimum_size = Vector2(390.91, 9.085)
+layout_mode = 2
+focus_mode = 0
+theme = ExtResource("3_sl6y8")
+text = "Bot Name"
+
+[node name="Score" type="Label" parent="Selection Menu/Bot Tiers/Tier 1/Button4"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 3.0
+offset_top = 32.0
+offset_right = -8.45999
+offset_bottom = 96.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.305882)
+theme_override_fonts/font = ExtResource("3_4imav")
+theme_override_font_sizes/font_size = 24
+text = "Wins: 0  Draws: 0  Losses: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+
 [node name="Button3" type="Button" parent="Selection Menu/Bot Tiers/Tier 2"]
 custom_minimum_size = Vector2(390.91, 9.085)
 layout_mode = 2
@@ -427,54 +503,8 @@ text = "Wins: 0  Draws: 0  Losses: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Button3" type="Button" parent="Selection Menu/Bot Tiers/Tier 5"]
-custom_minimum_size = Vector2(390.91, 9.085)
-layout_mode = 2
-focus_mode = 0
-theme = ExtResource("3_sl6y8")
-text = "Bot Name"
-
-[node name="Score" type="Label" parent="Selection Menu/Bot Tiers/Tier 5/Button3"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 3.0
-offset_top = 32.0
-offset_right = -8.45999
-offset_bottom = 96.0
-grow_horizontal = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.305882)
-theme_override_fonts/font = ExtResource("3_4imav")
-theme_override_font_sizes/font_size = 24
-text = "Wins: 0  Draws: 0  Losses: 0"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Button4" type="Button" parent="Selection Menu/Bot Tiers/Tier 5"]
-custom_minimum_size = Vector2(390.91, 9.085)
-layout_mode = 2
-focus_mode = 0
-theme = ExtResource("3_sl6y8")
-text = "Bot Name"
-
-[node name="Score" type="Label" parent="Selection Menu/Bot Tiers/Tier 5/Button4"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 3.0
-offset_top = 32.0
-offset_right = -8.45999
-offset_bottom = 96.0
-grow_horizontal = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.305882)
-theme_override_fonts/font = ExtResource("3_4imav")
-theme_override_font_sizes/font_size = 24
-text = "Wins: 0  Draws: 0  Losses: 0"
-horizontal_alignment = 1
-vertical_alignment = 1
-
 [node name="Bot info" type="RichTextLabel" parent="Selection Menu"]
-anchors_preset = 12
+anchors_preset = 13
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0

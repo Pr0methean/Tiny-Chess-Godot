@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using auto_Bot_1337;
 
 
 public partial class BotSelectionMenu : Node
@@ -155,6 +156,16 @@ public partial class BotSelectionMenu : Node
                 rating = 2772,
                 description = "The undisputed winner of the tiny chess bot tournament. This bot has been painstakingly optimized to see further ahead than all the others, allowing it often to crush its foes with tactical blows. Beyond this, it has a good understanding of piece placement, mobility, and pawn structure.",
                 type = typeof(auto_Bot_614.Bot_614)
+            },
+            new BotInfo()
+            {
+                name = "SCCCOMP",
+                nameFull = "SCCCOMP",
+                saveID = "SCCCOMP",
+                author = "Chris Hennick",
+                rating = -1,
+                description = "Combination of CCCP, Swarm and MinOpptMove.",
+                type = typeof(auto_Bot_1337.Bot_1337)
             },
         };
     }
