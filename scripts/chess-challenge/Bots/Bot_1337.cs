@@ -12,12 +12,12 @@ public class Bot_1337 : IChessBot
     private static long ENEMY_PIECE_VALUE_MULTIPLIER = 1_000_000;
     private static long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
-    private static long MIN_REPEATED_POSITION_PENALTY = 800_000;
-    private static long MAX_REPEATED_POSITION_PENALTY = 1_800_000;
+    private static long MIN_REPEATED_POSITION_PENALTY = 160_000_000;
+    private static long MAX_REPEATED_POSITION_PENALTY = 2_000_000_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long CHECK_BONUS = 600_000;
     private static long CASTLING_BONUS = 2_000_000;
-    private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 1_000_000 };
+    private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 20_000 };
     private static long[] PIECE_RANK_PUSH_VALUES = { 0, 200, 300, 400, 800, 1200, 300 };
     private static long[] PIECE_FILE_PUSH_VALUES = { 0, 100, 500, 400, 600, 1200, 300 };
     private static long[] PIECE_SWARM_VALUES = { 0, 50, 200, 333, 500, 500, 100 };
@@ -88,6 +88,14 @@ public class Bot_1337 : IChessBot
             Debug.WriteLine("Material advantage: {0}", materialEval);
             return materialEval;
         });
+        long fiftyMoveResetValue = 0;
+        long fiftyMoveCounter = board.FiftyMoveCounter;
+        if (materialEval > 0 && fiftyMoveCounter >= 60)
+        {
+            // Player that's ahead wants to reset the 50-move-rule counter.
+            long fiftyMoveResetValue = fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter;
+            Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
+        }
         long bestScore = long.MinValue;
         Move[] moves = board.GetLegalMoves();
         Move? bestMove = null;
@@ -260,6 +268,8 @@ public class Bot_1337 : IChessBot
                 Debug.WriteLine("Repeated position penalty: {0}", penalty);
                 score -= penalty;
             }
+
+            score += fiftyMoveResetValue;
             board.UndoMove(move);
             Debug.WriteLine("Move {0} has score {1}", move, score);
             if (bestMove == null || score > bestScore || (score == bestScore && random.Next(2) == 0))
