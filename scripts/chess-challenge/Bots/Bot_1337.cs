@@ -12,8 +12,8 @@ public class Bot_1337 : IChessBot
     private static long ENEMY_PIECE_VALUE_MULTIPLIER = 1_000_000;
     private static long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
-    private static long MIN_REPEATED_POSITION_PENALTY = 160_000_000;
-    private static long MAX_REPEATED_POSITION_PENALTY = 2_000_000_000;
+    private static long MIN_REPEATED_POSITION_PENALTY = 800_000_000;
+    private static long MAX_REPEATED_POSITION_PENALTY = 2_800_000_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long CHECK_BONUS = 600_000;
     private static long CASTLING_BONUS = 2_000_000;
