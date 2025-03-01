@@ -12,8 +12,8 @@ public class Bot_1337 : IChessBot
     private static long ENEMY_PIECE_VALUE_MULTIPLIER = 1_000_000;
     private static long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
-    private static long MIN_REPEATED_POSITION_PENALTY = 200_000;
-    private static long MAX_REPEATED_POSITION_PENALTY = 500_000;
+    private static long MIN_REPEATED_POSITION_PENALTY = 800_000;
+    private static long MAX_REPEATED_POSITION_PENALTY = 1_800_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long CHECK_BONUS = 600_000;
     private static long CASTLING_BONUS = 2_000_000;
@@ -28,7 +28,7 @@ public class Bot_1337 : IChessBot
     private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 13, 12, 11, 9, 7, 5, 3, 0 };
     private Random random = new();
     private MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
-    private MemoryCache bestResponseScoreZobrist = new(new MemoryCacheOptions());
+    private MemoryCache moveScoreZobrist = new(new MemoryCacheOptions());
     private MemoryCache bestResponseToResponseZobrist = new(new MemoryCacheOptions());
     public Move Think(Board board, Timer timer)
     {
@@ -93,14 +93,13 @@ public class Bot_1337 : IChessBot
         Move? bestMove = null;
         foreach (Move move in moves) {
             board.MakeMove(move);
-            long score = bestResponseScoreZobrist.GetOrCreate(board.ZobristKey, _ =>
+            long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move), _ =>
             {
                 if (board.IsInCheckmate())
                 {
                     return long.MaxValue;
                 }
 
-                long score;
                 if (board.IsDraw())
                 {
                     if (iAmABareKing)
@@ -159,9 +158,9 @@ public class Bot_1337 : IChessBot
                                 {
                                     return PieceType.King;
                                 }
-                                return responseToResponse.CapturePieceType;
-                            })
-                        );
+                                return (PieceType?) responseToResponse.CapturePieceType;
+                            }
+                        ) ?? PieceType.None );
                         Debug.WriteLine("Line {0} {1} leads to exchange of {2} for {3}", move, response,
                             capturedInResponse, capturedInResponseToResponse);
                     }
@@ -175,10 +174,10 @@ public class Bot_1337 : IChessBot
 
                 KeyValuePair<Move, long>? bestResponse = responseScores.MaxBy(pair => pair.Value);
                 Debug.WriteLine("Best capturing response: {0} with score {1}", bestResponse?.Key, bestResponse?.Value);
-                score = -responses.Sum(m =>
-                            PENALTY_PER_ENEMY_MOVE
-                            + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
-                        - Math.Max(0, bestResponse?.Value ?? 0L);
+                var score = -responses.Sum(m =>
+                                PENALTY_PER_ENEMY_MOVE
+                                + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
+                            - Math.Max(0, bestResponse?.Value ?? 0L);
                 Debug.WriteLine("Score based on responses: {0}", score);
                 if (move.IsCapture)
                 {
@@ -255,7 +254,7 @@ public class Bot_1337 : IChessBot
             });
             
             // Repeated positions don't factor into the Zobrist hash, so the penalty for them must be applied separately
-            if (board.IsRepeatedPosition() && !board.IsDraw())
+            if (board.IsRepeatedPosition())
             {
                 long penalty = random.NextInt64(MIN_REPEATED_POSITION_PENALTY, MAX_REPEATED_POSITION_PENALTY);
                 Debug.WriteLine("Repeated position penalty: {0}", penalty);
