@@ -33,9 +33,9 @@ public class Bot_1337 : IChessBot
     public Move Think(Board board, Timer timer)
     {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
-        if (board.PlyCount < 15)
+        if (board.PlyCount < 31)
         {
-            Move bookMove = TinyOpeningBook.TryGetMove(board, randomlyDontUseBookProb: (board.PlyCount + 1.0) / 16);
+            Move bookMove = TinyOpeningBook.TryGetMove(board, randomlyDontUseBookProb: (board.PlyCount + 1.0) / 32);
             if (!bookMove.IsNull)
             {
                 return bookMove;
@@ -197,7 +197,7 @@ public class Bot_1337 : IChessBot
 
                 if (iAmABareKing)
                 {
-                    goto scoreFinished;
+                    return score;
                 }
 
                 if (board.PlyCount < 10 && move.MovePieceType != PieceType.Pawn
@@ -223,7 +223,7 @@ public class Bot_1337 : IChessBot
                     Debug.WriteLine("Castling bonus: {0}", CASTLING_BONUS);
                     score += CASTLING_BONUS;
                     // Push/swarm logic won't handle castling well, so skip it
-                    goto scoreFinished;
+                    return score;
                 }
                 Square enemyKing = board.GetKingSquare(!iAmWhite);
                 int enemyKingRank = enemyKing.Rank;
@@ -251,7 +251,6 @@ public class Bot_1337 : IChessBot
                 score += PIECE_RANK_PUSH_VALUES[(int)move.MovePieceType] * rankPushAdjustment
                          + PIECE_FILE_PUSH_VALUES[(int)move.MovePieceType] * filePushAdjustment
                          + PIECE_SWARM_VALUES[(int)move.MovePieceType] * swarmAdjustment;
-                scoreFinished:
                 return score;
             });
             
