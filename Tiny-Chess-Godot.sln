@@ -21,5 +21,11 @@ Global
 		{1F750A2D-A6E1-44FB-B1AE-85538EE76709}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
 		{1F750A2D-A6E1-44FB-B1AE-85538EE76709}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
 		{1F750A2D-A6E1-44FB-B1AE-85538EE76709}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+		{D994A21B-C1A1-4365-B211-BB71021DE7E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D994A21B-C1A1-4365-B211-BB71021DE7E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D994A21B-C1A1-4365-B211-BB71021DE7E9}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D994A21B-C1A1-4365-B211-BB71021DE7E9}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{D994A21B-C1A1-4365-B211-BB71021DE7E9}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{D994A21B-C1A1-4365-B211-BB71021DE7E9}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

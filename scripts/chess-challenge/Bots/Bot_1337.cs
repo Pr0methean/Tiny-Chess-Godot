@@ -13,10 +13,11 @@ public class Bot_1337 : IChessBot
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
     private static long MIN_REPEATED_POSITION_PENALTY = 200_000;
     private static long MAX_REPEATED_POSITION_PENALTY = 500_000;
+    private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long CHECK_BONUS = 600_000;
     private static long CASTLING_BONUS = 2_000_000;
     private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 1_000_000 };
-    private static long[] PIECE_RANK_PUSH_VALUES = { 0, 400, 400, 600, 1200, 1600, 300 };
+    private static long[] PIECE_RANK_PUSH_VALUES = { 0, 300, 400, 600, 1200, 1600, 300 };
     private static long[] PIECE_FILE_PUSH_VALUES = { 0, 100, 750, 600, 1200, 1600, 300 };
     private static long[] PIECE_SWARM_VALUES = { 0, 50, 200, 333, 500, 500, 100 };
     private static long[] WHITE_PASSED_PAWN_VALUES = { 0, 0, 0, 0, 16, 64, 128, 0 };
@@ -144,10 +145,16 @@ public class Bot_1337 : IChessBot
                 Debug.WriteLine("Capture bonus: {0}", capture_bonus);
                 score += capture_bonus;
             }
-            
             if (iAmABareKing)
             {
                 goto scoreFinished;
+            }
+
+            if (board.PlyCount < 10 && move.MovePieceType != PieceType.Pawn 
+                                    && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7)
+            {
+                Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
+                score -= SAME_PIECE_OPENING_MOVE_PENALTY;
             }
             if (board.IsRepeatedPosition())
             {
