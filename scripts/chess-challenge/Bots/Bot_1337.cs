@@ -268,7 +268,7 @@ public class Bot_1337 : IChessBot
                 Debug.WriteLine("Repeated position penalty: {0}", penalty);
                 score -= penalty;
             }
-            if (move.IsCapture || move.MovePieceType == PieceType.Pawn)
+            if (fiftyMoveResetValue != 0 && (move.IsCapture || move.MovePieceType == PieceType.Pawn))
             {
                 score += fiftyMoveResetValue;
             }
