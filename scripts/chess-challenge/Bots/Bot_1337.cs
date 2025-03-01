@@ -268,8 +268,10 @@ public class Bot_1337 : IChessBot
                 Debug.WriteLine("Repeated position penalty: {0}", penalty);
                 score -= penalty;
             }
-
-            score += fiftyMoveResetValue;
+            if (move.IsCapture || move.MovePieceType == PieceType.Pawn)
+            {
+                score += fiftyMoveResetValue;
+            }
             board.UndoMove(move);
             Debug.WriteLine("Move {0} has score {1}", move, score);
             if (bestMove == null || score > bestScore || (score == bestScore && random.Next(2) == 0))
