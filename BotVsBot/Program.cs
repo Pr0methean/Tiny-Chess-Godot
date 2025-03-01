@@ -6,7 +6,6 @@ using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
 using Timer = ChessChallenge.API.Timer;
 
-BotSettings.ActiveBotType = typeof(auto_Bot_614.Bot_614);
 Bot_1337 white = new();
 Bot_1337 black = new();
 Board board = new();
