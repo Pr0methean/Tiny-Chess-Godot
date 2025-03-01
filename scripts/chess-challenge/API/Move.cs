@@ -55,8 +55,7 @@ namespace ChessChallenge.API
 
 		public override string ToString()
 		{
-			string moveName = MoveUtility.GetMoveNameUCI(move);
-			return $"Move: '{moveName}'";
+			return MoveUtility.GetMoveNameUCI(move);
 		}
 
 		/// <summary>
