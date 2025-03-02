@@ -136,7 +136,7 @@ public class Bot_1337 : IChessBot
                 }
                 Move[] responses = board.GetLegalMoves();
                 Debug.WriteLine("Responses: {0}", responses.Length);
-                Dictionary<Move, long> responseScores = new();
+                long bestResponseScore = long.MinValue;
                 foreach (var response in responses)
                 {
                     PieceType capturedInResponse;
@@ -174,18 +174,21 @@ public class Bot_1337 : IChessBot
                             capturedInResponse, capturedInResponseToResponse);
                     }
 
+                    long responseScore = (PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
+                                  - PIECE_VALUES
+                                      [(int)(capturedInResponseToResponse ?? PieceType.None)] *
+                                  ENEMY_PIECE_VALUE_MULTIPLIER);
                     board.UndoMove(response);
-                    responseScores.Add(response, (PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
-                                                  - PIECE_VALUES
-                                                      [(int)(capturedInResponseToResponse ?? PieceType.None)] *
-                                                  ENEMY_PIECE_VALUE_MULTIPLIER));
+                    Debug.WriteLine("Response {0} has score {1}", response, responseScore);
+                    if (responseScore > bestResponseScore)
+                    {
+                        bestResponseScore = responseScore;
+                    }
                 }
-                KeyValuePair<Move, long>? bestResponse = responseScores.MaxBy(pair => pair.Value);
-                Debug.WriteLine("Best capturing response: {0} with score {1}", bestResponse?.Key, bestResponse?.Value);
                 var score = -responses.Sum(m =>
                                 PENALTY_PER_ENEMY_MOVE
                                 + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
-                            - Math.Max(0, bestResponse?.Value ?? 0L);
+                            - Math.Max(0, bestResponseScore);
                 Debug.WriteLine("Score based on responses: {0}", score);
                 if (move.IsCapture)
                 {
