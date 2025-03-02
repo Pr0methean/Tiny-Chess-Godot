@@ -207,7 +207,8 @@ public class Bot_1337 : IChessBot
                     return score;
                 }
 
-                if (board.PlyCount < 10 && move.MovePieceType != PieceType.Pawn
+                if (board.PlyCount < 10 && (move.MovePieceType is PieceType.Bishop or PieceType.Rook or PieceType.Queen
+                                            || move is { MovePieceType: PieceType.Knight, TargetSquare.Rank: 0 or 7 })
                                         && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7)
                 {
                     Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
