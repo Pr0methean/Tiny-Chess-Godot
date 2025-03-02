@@ -97,11 +97,11 @@ public class Bot_1337 : IChessBot
             Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
         }
         long bestScore = long.MinValue;
-        Move[] moves = board.GetLegalMoves();
-        Move? bestMove = null;
         board.MakeMove(Move.NullMove);
         long baseline = evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0);
         board.UndoMove(Move.NullMove);
+        Move[] moves = board.GetLegalMoves();
+        Move? bestMove = null; 
         foreach (Move move in moves) {
             board.MakeMove(move);
             long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move), 
@@ -175,46 +175,42 @@ public class Bot_1337 : IChessBot
             bool isMate = board.IsInCheckmate();
             if (isMate)
             {
+                board.UndoMove(response);
                 return 1_000_000_000_000L;
             }
-            else
-            {
-                capturedInResponse = response.CapturePieceType;
-                scoreInResponseToResponse = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
-                    board.GetLegalMoves().Max(responseToResponse =>
-                        {
-                            board.MakeMove(responseToResponse);
-                            long? responseToResponseScore = (long?) moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
-                            if (responseToResponseScore != null)
-                            {
-                                return responseToResponseScore;
-                            }
-                            long? cachedScore = (long?)
-                                moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
-                            if (cachedScore != null)
-                            {
-                                return cachedScore;
-                            }
-                            bool isMate1 = board.IsInCheckmate();
-                            if (!isMate1 && board.IsDraw())
-                            {
-                                ulong previousPlayerBitboard = board.IsWhiteToMove ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-                                // Treat draw as a win for the bare king, since that's the best he can do
-                                isMate1 = isBareKing(previousPlayerBitboard);
-                            }
-                            board.UndoMove(responseToResponse);
-                            if (isMate1)
-                            {
-                                return 1_000_000_000_000;
-                            }
-                            return PIECE_VALUES[(int)responseToResponse.CapturePieceType] * ENEMY_PIECE_VALUE_MULTIPLIER;
-                        }) ?? 0L );
-                Debug.WriteLine("Line {0} {1} leads to exchange of {2} for {3}", move, response,
-                    capturedInResponse, scoreInResponseToResponse);
-                return (PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
-                                      - (scoreInResponseToResponse ?? 0L));
-            }
-
+            
+            scoreInResponseToResponse = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
+                board.GetLegalMoves().Max(responseToResponse =>
+                {
+                    board.MakeMove(responseToResponse);
+                    long? responseToResponseScore = (long?) moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
+                    if (responseToResponseScore != null)
+                    {
+                        return responseToResponseScore;
+                    }
+                    long? cachedScore = (long?)
+                        moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
+                    if (cachedScore != null)
+                    {
+                        return cachedScore;
+                    }
+                    bool isMate1 = board.IsInCheckmate();
+                    if (!isMate1 && board.IsDraw())
+                    {
+                        ulong previousPlayerBitboard = board.IsWhiteToMove ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+                        // Treat draw as a win for the bare king, since that's the best he can do
+                        isMate1 = isBareKing(previousPlayerBitboard);
+                    }
+                    board.UndoMove(responseToResponse);
+                    if (isMate1)
+                    {
+                        return 1_000_000_000_000;
+                    }
+                    return PIECE_VALUES[(int)responseToResponse.CapturePieceType] * ENEMY_PIECE_VALUE_MULTIPLIER;
+                }) ?? 0L );
+            Debug.WriteLine("Line {0} {1} leads to exchange of {2} for {3}", move, response,
+                capturedInResponse, scoreInResponseToResponse);
+            
             long responseScore = PIECE_VALUES[(int)response.CapturePieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
                                  - (scoreInResponseToResponse ?? 0L);
             board.UndoMove(response);
