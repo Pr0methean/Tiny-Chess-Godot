@@ -33,9 +33,9 @@ public class Bot_1337 : IChessBot
     public Move Think(Board board, Timer timer)
     {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
-        if (board.PlyCount < 31)
+        if (board.PlyCount < 32)
         {
-            Move bookMove = TinyOpeningBook.TryGetMove(board, randomlyDontUseBookProb: (board.PlyCount + 1.0) / 32);
+            Move bookMove = TinyOpeningBook.TryGetMove(board, randomlyDontUseBookProb: (board.PlyCount) / 32);
             if (!bookMove.IsNull)
             {
                 return bookMove;
