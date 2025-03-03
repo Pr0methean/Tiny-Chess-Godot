@@ -106,14 +106,14 @@ public class Bot_1337 : IChessBot
         baseline = Math.Max(Math.Min(baseline, 1_000_000_000), -1_000_000_000);
 
         board.UndoMove(Move.NullMove);
+        Debug.WriteLine("Null move has baseline score of {0}", 1baseline);
         */
-        Debug.WriteLine("Null move has baseline score of {0}", baseline);
+        Move? bestMove = null;
         Move[] moves = board.GetLegalMoves();
-        Move? bestMove = null; 
         foreach (Move move in moves) {
             board.MakeMove(move);
             long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move), 
-                _ => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite, baseline));
+                _ => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite));
             // Repeated positions don't factor into the Zobrist hash, so the penalty for them must be applied separately
             if (board.IsRepeatedPosition())
             {
@@ -137,9 +137,9 @@ public class Bot_1337 : IChessBot
     }
 
     private long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
-        int negateIfWhite, long baseline)
+        int negateIfWhite)
     {
-        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
+        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
         if (mateOrDraw != null)
         {
             return (long) mateOrDraw;
@@ -154,7 +154,7 @@ public class Bot_1337 : IChessBot
             board.MakeMove(response);
             long? responseScore = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
             {
-                var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline); 
+                var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval); 
                 if (mateOrDrawInResponse != null)
                 {
                     return -mateOrDrawInResponse;
@@ -164,7 +164,7 @@ public class Bot_1337 : IChessBot
                 {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore = (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
-                    responseToResponseScore ??= evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
+                    responseToResponseScore ??= evaluateMateOrDraw(board, iAmABareKing, materialEval);
                     responseToResponseScore ??= evalCaptureBonus(board, responseToResponse, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                     board.UndoMove(responseToResponse);
                     return responseToResponseScore;
@@ -314,7 +314,7 @@ public class Bot_1337 : IChessBot
         return capture_bonus;
     }
 
-    private static long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval, long baseline)
+    private static long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval)
     {
         if (board.IsInCheckmate())
         {
@@ -331,7 +331,7 @@ public class Bot_1337 : IChessBot
             if (materialEval < 0)
             {
                 // Opponent is ahead on material, so favor the draw
-                return Math.Max(baseline, 0L);
+                return 0;
             }
             return -500_000_000_000L;
         }
