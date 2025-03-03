@@ -97,6 +97,7 @@ public class Bot_1337 : IChessBot
             Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
         }
         long bestScore = long.MinValue;
+        /*
         board.MakeMove(Move.NullMove);
         long baseline = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, Move.NullMove),
             _ => evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0));
@@ -105,6 +106,7 @@ public class Bot_1337 : IChessBot
         baseline = Math.Max(Math.Min(baseline, 1_000_000_000), -1_000_000_000);
 
         board.UndoMove(Move.NullMove);
+        */
         Debug.WriteLine("Null move has baseline score of {0}", baseline);
         Move[] moves = board.GetLegalMoves();
         Move? bestMove = null; 
@@ -219,11 +221,12 @@ public class Bot_1337 : IChessBot
             // Push/swarm logic won't handle castling well, so skip it
             goto scoreFinishedExceptBaselining;
         }
-
+        /*
         if (move.IsNull)
         {
             goto scoreFinishedExceptBaselining;
         }
+        */
         Square enemyKing = board.GetKingSquare(!iAmWhite);
         int enemyKingRank = enemyKing.Rank;
         int enemyKingFile = enemyKing.File;
@@ -285,7 +288,7 @@ public class Bot_1337 : IChessBot
                  + PIECE_SWARM_VALUES[(int)move.MovePieceType] * swarmAdjustment;
         scoreFinishedExceptBaselining:
         Debug.WriteLine("Score before baselining: {0}", score);
-        score -= baseline;
+        // score -= baseline;
         return score;
     }
 
