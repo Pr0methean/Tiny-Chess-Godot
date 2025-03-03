@@ -98,7 +98,8 @@ public class Bot_1337 : IChessBot
         }
         long bestScore = long.MinValue;
         board.MakeMove(Move.NullMove);
-        long baseline = evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0);
+        long baseline = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, Move.NullMove),
+            _ => evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0));
         board.UndoMove(Move.NullMove);
         Debug.WriteLine("Null move has baseline score of {0}", baseline);
         Move[] moves = board.GetLegalMoves();
