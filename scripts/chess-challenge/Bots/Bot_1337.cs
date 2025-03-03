@@ -308,7 +308,7 @@ public class Bot_1337 : IChessBot
         if (isBareKing(opponentBitboardAfterMove))
         {
             Debug.WriteLine("This move will leave the opponent a bare king!");
-            capture_bonus = 100_000_000_000L;
+            capture_bonus = 600_000_000_000L;
         } else {
             capture_bonus = PIECE_VALUES[(int)move.CapturePieceType];
             if (move.CapturePieceType == PieceType.Pawn)
