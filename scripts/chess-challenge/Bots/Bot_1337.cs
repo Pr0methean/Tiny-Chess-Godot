@@ -150,7 +150,7 @@ public class Bot_1337 : IChessBot
                 return Math.Max(baseline, 0L);
             }
 
-            return -1_000_000_000_000L;
+            return -500_000_000_000L;
         }
 
         Debug.WriteLine("Evaluating {0}", move);
