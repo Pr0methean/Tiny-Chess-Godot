@@ -20,7 +20,7 @@ public class Bot_1337 : IChessBot
     private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 20_000 };
     private static long[] PIECE_RANK_PUSH_VALUES = { 0, 200, 300, 400, 800, 1200, 300 };
     private static long[] PIECE_FILE_PUSH_VALUES = { 0, 100, 500, 400, 600, 1200, 300 };
-    private static long[] PIECE_SWARM_VALUES = { 0, 50, 100, 250, 350, 400, 200 };
+    private static long[] PIECE_SWARM_VALUES = { 0, 75, 150, 300, 400, 450, 200 };
     private static long[] WHITE_PASSED_PAWN_VALUES = { 0, 0, 0, 0, 16, 64, 128, 0 };
     private static long[] BLACK_PASSED_PAWN_VALUES = { 0, 128, 64, 16, 0, 0, 0, 0 };
     private static long[] FILE_CENTER_DISTANCE_VALUES = { 6, 3, 1, 0, 0, 1, 3, 6 };
@@ -100,13 +100,13 @@ public class Bot_1337 : IChessBot
         board.MakeMove(Move.NullMove);
         long baseline = evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0);
         board.UndoMove(Move.NullMove);
+        Debug.WriteLine("Null move has baseline score of {0}", baseline);
         Move[] moves = board.GetLegalMoves();
         Move? bestMove = null; 
         foreach (Move move in moves) {
             board.MakeMove(move);
             long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move), 
                 _ => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite, baseline));
-            
             // Repeated positions don't factor into the Zobrist hash, so the penalty for them must be applied separately
             if (board.IsRepeatedPosition())
             {
@@ -169,16 +169,17 @@ public class Bot_1337 : IChessBot
         foreach (var response in responses)
         {
             board.MakeMove(response);
-            PieceType capturedInResponse;
+            PieceType capturedInResponse = response.CapturePieceType;
             long? scoreInResponseToResponse;
             
             bool isMate = board.IsInCheckmate();
             if (isMate)
             {
+                Debug.WriteLine("Response {0} is checkmate", response);
                 board.UndoMove(response);
-                return 1_000_000_000_000L;
+                bestResponseScore = 1_000_000_000_000L;
+                break;
             }
-            
             scoreInResponseToResponse = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
                 board.GetLegalMoves().Max(responseToResponse =>
                 {
@@ -196,6 +197,7 @@ public class Bot_1337 : IChessBot
                         board.UndoMove(responseToResponse);   
                         return cachedScore;
                     }
+
                     bool responseIsMate = board.IsInCheckmate();
                     if (!responseIsMate && board.IsDraw())
                     {
@@ -208,12 +210,12 @@ public class Bot_1337 : IChessBot
                     {
                         return 1_000_000_000_000;
                     }
-                    return PIECE_VALUES[(int)responseToResponse.CapturePieceType] * ENEMY_PIECE_VALUE_MULTIPLIER;
+
+                    PieceType capturedInResponseToResponse = responseToResponse.CapturePieceType;
+                    return PIECE_VALUES[(int)capturedInResponseToResponse] * ENEMY_PIECE_VALUE_MULTIPLIER;
                 }) ?? 0L );
-            Debug.WriteLine("Line {0} {1} leads to exchange of {2} for {3}", move, response,
-                capturedInResponse, scoreInResponseToResponse);
             
-            long responseScore = PIECE_VALUES[(int)response.CapturePieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
+            long responseScore = PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
                                  - (scoreInResponseToResponse ?? 0L);
             board.UndoMove(response);
             Debug.WriteLine("Response {0} has score {1}", response, responseScore);
@@ -274,6 +276,11 @@ public class Bot_1337 : IChessBot
             // Push/swarm logic won't handle castling well, so skip it
             goto scoreFinishedExceptBaselining;
         }
+
+        if (move.IsNull)
+        {
+            goto scoreFinishedExceptBaselining;
+        }
         Square enemyKing = board.GetKingSquare(!iAmWhite);
         int enemyKingRank = enemyKing.Rank;
         int enemyKingFile = enemyKing.File;
@@ -293,14 +300,42 @@ public class Bot_1337 : IChessBot
         int swarmAdjustment = squaresFromKingBefore - squaresFromKingAfter;
         long[] myRankValues = iAmWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES;
         long rankPushAdjustment = myRankValues[move.StartSquare.Rank] - myRankValues[move.TargetSquare.Rank];
-        long filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
-                                  FILE_CENTER_DISTANCE_VALUES[move.TargetSquare.File];
+        long filePushAdjustment;
+        bool behindUnmovedPawn;
+        if (iAmWhite)
+        {
+            if (move.TargetSquare.Rank != 7)
+            {
+                behindUnmovedPawn = false;
+            }
+            Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
+            behindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
+        }
+        else
+        {
+            if (move.TargetSquare.Rank != 0)
+            {
+                behindUnmovedPawn = false;
+            }
+            Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
+            behindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
+        }
+        if (behindUnmovedPawn) {
+            filePushAdjustment = 0; // No push adjustment applies on the back rank 
+        }
+        else
+        {
+            filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
+                                 FILE_CENTER_DISTANCE_VALUES[move.TargetSquare.File];
+        }
+
         Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
             filePushAdjustment);
         score += PIECE_RANK_PUSH_VALUES[(int)move.MovePieceType] * rankPushAdjustment
                  + PIECE_FILE_PUSH_VALUES[(int)move.MovePieceType] * filePushAdjustment
                  + PIECE_SWARM_VALUES[(int)move.MovePieceType] * swarmAdjustment;
         scoreFinishedExceptBaselining:
+        Debug.WriteLine("Score before baselining: {0}", score);
         score -= baseline;
         return score;
     }
