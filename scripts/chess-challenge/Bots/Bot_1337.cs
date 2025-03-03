@@ -139,7 +139,8 @@ public class Bot_1337 : IChessBot
     private long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
         int negateIfWhite)
     {
-        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
+        var opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+        var mateOrDraw = evaluateMateOrDraw(board, isBareKing(opponentBitboard), materialEval);
         if (mateOrDraw != null)
         {
             return (long) mateOrDraw;
