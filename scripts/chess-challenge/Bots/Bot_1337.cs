@@ -160,7 +160,7 @@ public class Bot_1337 : IChessBot
             if (isBareKing(opponentBitboardAfterMove))
             {
                 Debug.WriteLine("This move will leave the opponent a bare king!");
-                return 999_999_999_999L;
+                return 900_000_000_000L;
             }
         }
         Move[] responses = board.GetLegalMoves();
