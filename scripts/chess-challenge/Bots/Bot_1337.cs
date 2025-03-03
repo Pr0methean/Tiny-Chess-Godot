@@ -227,7 +227,7 @@ public class Bot_1337 : IChessBot
         var score = -responses.Sum(m =>
                         PENALTY_PER_ENEMY_MOVE
                         + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
-                    - Math.Max(0, bestResponseScore);
+                    - bestResponseScore;
         Debug.WriteLine("Score based on responses: {0}", score);
         if (move.IsCapture)
         {
