@@ -157,7 +157,7 @@ public class Bot_1337 : IChessBot
                 var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval); 
                 if (mateOrDrawInResponse != null)
                 {
-                    return -mateOrDrawInResponse;
+                    return mateOrDrawInResponse;
                 }
                 return evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER)
                     - board.GetLegalMoves().Max(responseToResponse =>
