@@ -139,8 +139,7 @@ public class Bot_1337 : IChessBot
     private long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
         int negateIfWhite)
     {
-        var opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-        var mateOrDraw = evaluateMateOrDraw(board, isBareKing(opponentBitboard), materialEval);
+        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
         if (mateOrDraw != null)
         {
             return (long) mateOrDraw;
@@ -155,7 +154,8 @@ public class Bot_1337 : IChessBot
             board.MakeMove(response);
             long? responseScore = responseScoreZobrist.GetOrCreate(board.ZobristKey, _ =>
             {
-                var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval); 
+                long opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+                var mateOrDrawInResponse = evaluateMateOrDraw(board, isBareKing(opponentBitboard), -materialEval); 
                 if (mateOrDrawInResponse != null)
                 {
                     return mateOrDrawInResponse;
