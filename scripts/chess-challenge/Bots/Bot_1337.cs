@@ -93,7 +93,7 @@ public class Bot_1337 : IChessBot
         if (materialEval > 0 && fiftyMoveCounter >= 60)
         {
             // Player that's ahead wants to reset the 50-move-rule counter.
-            fiftyMoveResetValue = fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter;
+            fiftyMoveResetValue = fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * 10_000;
             Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
         }
         board.MakeMove(Move.NullMove);
@@ -126,7 +126,7 @@ public class Bot_1337 : IChessBot
                 Debug.WriteLine("Repeated position penalty: {0}", penalty);
                 score -= penalty;
             }
-            if (fiftyMoveResetValue != 0 && (move.IsCapture || move.MovePieceType == PieceType.Pawn))
+            if (move.IsCapture || move.MovePieceType == PieceType.Pawn)
             {
                 score += fiftyMoveResetValue;
             }
