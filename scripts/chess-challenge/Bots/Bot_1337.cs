@@ -163,7 +163,7 @@ public class Bot_1337 : IChessBot
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore = (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
                     responseToResponseScore ??= evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
-                    responseToResponseScore ??= evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
+                    responseToResponseScore ??= evalCaptureBonus(board, responseToResponse, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                     board.UndoMove(responseToResponse);
                     return responseToResponseScore;
                 }) ?? 0L;
