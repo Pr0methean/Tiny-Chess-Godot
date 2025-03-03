@@ -251,8 +251,11 @@ public class Bot_1337 : IChessBot
             {
                 behindUnmovedPawn = false;
             }
-            Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
-            behindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
+            else
+            {
+                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
+                behindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
+            }
         }
         else
         {
@@ -260,8 +263,11 @@ public class Bot_1337 : IChessBot
             {
                 behindUnmovedPawn = false;
             }
-            Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
-            behindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
+            else
+            {
+                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
+                behindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
+            }
         }
         if (behindUnmovedPawn) {
             filePushAdjustment = 0; // No push adjustment applies on the back rank 
