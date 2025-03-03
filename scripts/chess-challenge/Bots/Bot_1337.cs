@@ -29,7 +29,7 @@ public class Bot_1337 : IChessBot
     private Random random = new();
     private MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
     private MemoryCache moveScoreZobrist = new(new MemoryCacheOptions());
-    private MemoryCache bestResponseToResponseZobrist = new(new MemoryCacheOptions());
+    private MemoryCache responseScoreZobrist = new(new MemoryCacheOptions());
     public Move Think(Board board, Timer timer)
     {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -153,7 +153,7 @@ public class Bot_1337 : IChessBot
         {
             PieceType capturedInResponse = response.CapturePieceType;
             board.MakeMove(response);
-            long? responseScore = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
+            long? responseScore = responseScoreZobrist.GetOrCreate(board.ZobristKey, _ =>
             {
                 var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval); 
                 if (mateOrDrawInResponse != null)
