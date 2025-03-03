@@ -145,14 +145,15 @@ public class Bot_1337 : IChessBot
         {
             PieceType capturedInResponse = response.CapturePieceType;
             board.MakeMove(response);
-            long? scoreInResponseToResponse = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
+            long? responseScore = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
             {
                 var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline); 
                 if (mateOrDrawInResponse != null)
                 {
                     return -mateOrDrawInResponse;
                 }
-                return board.GetLegalMoves().Max(responseToResponse =>
+                return evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER)
+                    - board.GetLegalMoves().Max(responseToResponse =>
                 {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore = (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
@@ -162,16 +163,13 @@ public class Bot_1337 : IChessBot
                     return responseToResponseScore;
                 }) ?? 0L;
             });
-            long responseScore = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER)
-                                 - (scoreInResponseToResponse ?? 0L);
             board.UndoMove(response);
             Debug.WriteLine("Response {0} has score {1}", response, responseScore);
-            if (responseScore > bestResponseScore)
+            if (responseScore != null && responseScore > bestResponseScore)
             {
-                bestResponseScore = responseScore;
+                bestResponseScore = (long) responseScore;
             }
         }
-
         var score = -responses.Sum(m =>
                         PENALTY_PER_ENEMY_MOVE
                         + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
