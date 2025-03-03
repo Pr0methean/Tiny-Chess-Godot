@@ -157,12 +157,12 @@ public class Bot_1337 : IChessBot
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore = (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
                     responseToResponseScore ??= evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
-                    responseToResponseScore ??= evalCaptureBonus(board, move, iAmWhite);
+                    responseToResponseScore ??= evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                     board.UndoMove(responseToResponse);
                     return responseToResponseScore;
                 }) ?? 0L;
             });
-            long responseScore = PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
+            long responseScore = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER)
                                  - (scoreInResponseToResponse ?? 0L);
             board.UndoMove(response);
             Debug.WriteLine("Response {0} has score {1}", response, responseScore);
@@ -179,7 +179,7 @@ public class Bot_1337 : IChessBot
         Debug.WriteLine("Score based on responses: {0}", score);
         if (move.IsCapture)
         {
-            var capture_bonus = evalCaptureBonus(board, move, iAmWhite);
+            var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
             Debug.WriteLine("Capture bonus: {0}", capture_bonus);
             score += capture_bonus;
         }
@@ -280,7 +280,7 @@ public class Bot_1337 : IChessBot
         return score;
     }
 
-    private static long evalCaptureBonus(Board board, Move move, bool iAmWhite)
+    private static long evalCaptureBonus(Board board, Move move, bool iAmWhite, long pieceValueMultiplier)
     {
         long capture_bonus;
         ulong opponentBitboardAfterMove = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
@@ -296,7 +296,7 @@ public class Bot_1337 : IChessBot
                     ? BLACK_PASSED_PAWN_VALUES[move.TargetSquare.Rank]
                     : WHITE_PASSED_PAWN_VALUES[move.TargetSquare.Rank];
             }
-            capture_bonus *= ENEMY_PIECE_VALUE_MULTIPLIER;
+            capture_bonus *= pieceValueMultiplier;
         }
 
         return capture_bonus;
