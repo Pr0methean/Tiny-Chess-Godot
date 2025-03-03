@@ -96,6 +96,10 @@ public class Bot_1337 : IChessBot
             fiftyMoveResetValue = fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter * fiftyMoveCounter;
             Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
         }
+        board.MakeMove(Move.NullMove);
+        // Prevents a bias against previously depth-1-evaluated moves when considering them as responses to responses
+        long minOpptMovesBaseline = minOpptMovesScore(board.GetLegalMoves());
+        board.UndoMove(Move.NullMove);
         long bestScore = long.MinValue;
         /*
         board.MakeMove(Move.NullMove);
@@ -113,7 +117,8 @@ public class Bot_1337 : IChessBot
         foreach (Move move in moves) {
             board.MakeMove(move);
             long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move), 
-                _ => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite));
+                _ => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite) 
+                     - minOpptMovesBaseline);
             // Repeated positions don't factor into the Zobrist hash, so the penalty for them must be applied separately
             if (board.IsRepeatedPosition())
             {
@@ -177,10 +182,7 @@ public class Bot_1337 : IChessBot
                 bestResponseScore = (long) responseScore;
             }
         }
-        var score = -responses.Sum(m =>
-                        PENALTY_PER_ENEMY_MOVE
-                        + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
-                    - bestResponseScore;
+        var score = minOpptMovesScore(responses) - bestResponseScore;
         Debug.WriteLine("Score based on responses: {0}", score);
         if (move.IsCapture)
         {
@@ -290,6 +292,13 @@ public class Bot_1337 : IChessBot
         Debug.WriteLine("Score before baselining: {0}", score);
         // score -= baseline;
         return score;
+    }
+
+    private static long minOpptMovesScore(Move[] responses)
+    {
+        return -responses.Sum(m =>
+            PENALTY_PER_ENEMY_MOVE
+            + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER);
     }
 
     private static long evalCaptureBonus(Board board, Move move, bool iAmWhite, long pieceValueMultiplier)
