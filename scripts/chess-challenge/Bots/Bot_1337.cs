@@ -141,7 +141,7 @@ public class Bot_1337 : IChessBot
         return (Move)bestMove!;
     }
 
-    private long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
+    public long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
         int negateIfWhite)
     {
         var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
@@ -164,8 +164,9 @@ public class Bot_1337 : IChessBot
                 {
                     return mateOrDrawInResponse;
                 }
-                return evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER)
-                    - board.GetLegalMoves().Max(responseToResponse =>
+
+                long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
+                long bestResponseToResponseScore = board.GetLegalMoves().Max(responseToResponse =>
                 {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore = (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
@@ -174,6 +175,7 @@ public class Bot_1337 : IChessBot
                     board.UndoMove(responseToResponse);
                     return responseToResponseScore;
                 }) ?? 0L;
+                return responseCaptureBonus - bestResponseToResponseScore;
             });
             board.UndoMove(response);
             Debug.WriteLine("Response {0} has score {1}", response, responseScore);

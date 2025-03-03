@@ -2,6 +2,8 @@
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BotVsBot", "BotVsBot.csproj", "{3CACE442-2C6F-4393-9137-69F1191692E2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BotVsBot.Tests", "..\BotVsBot.Tests\BotVsBot.Tests.csproj", "{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Debug|Any CPU = Debug|Any CPU
@@ -15,5 +17,11 @@ Global
 		{3CACE442-2C6F-4393-9137-69F1191692E2}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
 		{3CACE442-2C6F-4393-9137-69F1191692E2}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
 		{3CACE442-2C6F-4393-9137-69F1191692E2}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F9918EF-775A-4D71-A8B5-F4B56B4C1893}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal
