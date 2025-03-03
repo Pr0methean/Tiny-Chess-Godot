@@ -50,14 +50,14 @@ public class Bot_1337 : IChessBot
         {
             if (iAmABareKing) {
                 Debug.WriteLine("Skipping material evaluation: I'm a bare king!");
-                return -1_000_000_000_000L;
+                return -100_000_000_000L;
             } else {
                 ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
                 bool opponentIsBareKing = isBareKing(opponentBitboard);
                 if (opponentIsBareKing)
                 {
                     Debug.WriteLine("Skipping material evaluation: Opponent is a bare king!");
-                    return 1_000_000_000_000L;
+                    return 100_000_000_000L;
                 }
             }
             long materialEval = 0;
