@@ -132,25 +132,10 @@ public class Bot_1337 : IChessBot
     private long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
         int negateIfWhite, long baseline)
     {
-        if (board.IsInCheckmate())
+        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
+        if (mateOrDraw != null)
         {
-            return 1_000_000_000_000L;
-        }
-
-        if (board.IsDraw())
-        {
-            if (iAmABareKing)
-            {
-                // A draw is as good as a win for a bare king since it's the best he can do
-                return 1_000_000_000_000L;
-            }
-            if (materialEval < 0)
-            {
-                // Opponent is ahead on material, so favor the draw
-                return Math.Max(baseline, 0L);
-            }
-
-            return -500_000_000_000L;
+            return (long) mateOrDraw;
         }
 
         Debug.WriteLine("Evaluating {0}", move);
@@ -168,53 +153,37 @@ public class Bot_1337 : IChessBot
         long bestResponseScore = long.MinValue;
         foreach (var response in responses)
         {
-            board.MakeMove(response);
             PieceType capturedInResponse = response.CapturePieceType;
-            long? scoreInResponseToResponse;
-            
-            bool isMate = board.IsInCheckmate();
-            if (isMate)
+            board.MakeMove(response);
+            long? scoreInResponseToResponse = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
             {
-                Debug.WriteLine("Response {0} is checkmate", response);
-                board.UndoMove(response);
-                bestResponseScore = 1_000_000_000_000L;
-                break;
-            }
-            scoreInResponseToResponse = bestResponseToResponseZobrist.GetOrCreate(board.ZobristKey, _ =>
-                board.GetLegalMoves().Max(responseToResponse =>
+                var mateOrDrawInResponse = evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline); 
+                if (mateOrDrawInResponse != null)
+                {
+                    return -mateOrDrawInResponse;
+                }
+                return board.GetLegalMoves().Max(responseToResponse =>
                 {
                     board.MakeMove(responseToResponse);
-                    long? responseToResponseScore = (long?) moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
-                    if (responseToResponseScore != null)
+                    long? scoreFromDepth1Cache =
+                        (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
+                    if (scoreFromDepth1Cache != null)
                     {
                         board.UndoMove(responseToResponse);
-                        return responseToResponseScore;
-                    }
-                    long? cachedScore = (long?)
-                        moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
-                    if (cachedScore != null)
-                    {
-                        board.UndoMove(responseToResponse);   
-                        return cachedScore;
+                        return scoreFromDepth1Cache;
                     }
 
-                    bool responseIsMate = board.IsInCheckmate();
-                    if (!responseIsMate && board.IsDraw())
-                    {
-                        ulong previousPlayerBitboard = board.IsWhiteToMove ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-                        // Treat draw as a win for the bare king, since that's the best he can do
-                        responseIsMate = isBareKing(previousPlayerBitboard);
-                    }
+                    var responseToResponseIsMateOrDraw =
+                        evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
                     board.UndoMove(responseToResponse);
-                    if (responseIsMate)
+                    if (responseToResponseIsMateOrDraw != null)
                     {
-                        return 1_000_000_000_000;
+                        return responseToResponseIsMateOrDraw;
                     }
-
                     PieceType capturedInResponseToResponse = responseToResponse.CapturePieceType;
                     return PIECE_VALUES[(int)capturedInResponseToResponse] * ENEMY_PIECE_VALUE_MULTIPLIER;
-                }) ?? 0L );
-            
+                }) ?? 0L;
+            });
             long responseScore = PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
                                  - (scoreInResponseToResponse ?? 0L);
             board.UndoMove(response);
@@ -224,6 +193,7 @@ public class Bot_1337 : IChessBot
                 bestResponseScore = responseScore;
             }
         }
+
         var score = -responses.Sum(m =>
                         PENALTY_PER_ENEMY_MOVE
                         + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER)
@@ -338,6 +308,31 @@ public class Bot_1337 : IChessBot
         Debug.WriteLine("Score before baselining: {0}", score);
         score -= baseline;
         return score;
+    }
+
+    private static long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval, long baseline)
+    {
+        if (board.IsInCheckmate())
+        {
+            return 1_000_000_000_000L;
+        }
+
+        if (board.IsDraw())
+        {
+            if (iAmABareKing)
+            {
+                // A draw is as good as a win for a bare king since it's the best he can do
+                return 1_000_000_000_000L;
+            }
+            if (materialEval < 0)
+            {
+                // Opponent is ahead on material, so favor the draw
+                return Math.Max(baseline, 0L);
+            }
+            return -500_000_000_000L;
+        }
+
+        return null;
     }
 
     private static bool isBareKing(ulong bitboard)
