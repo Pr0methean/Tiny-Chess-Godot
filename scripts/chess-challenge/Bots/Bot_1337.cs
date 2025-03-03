@@ -102,7 +102,7 @@ public class Bot_1337 : IChessBot
             _ => evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0));
         
         // Sanity checks
-        baseline = Math.Max(Math.Min(baseline, 10_000_000_000), -10_000_000_000);
+        baseline = Math.Max(Math.Min(baseline, 1_000_000_000), -1_000_000_000);
 
         board.UndoMove(Move.NullMove);
         Debug.WriteLine("Null move has baseline score of {0}", baseline);
