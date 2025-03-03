@@ -20,7 +20,7 @@ public class Bot_1337 : IChessBot
     private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 20_000 };
     private static long[] PIECE_RANK_PUSH_VALUES = { 0, 200, 300, 400, 800, 1200, 300 };
     private static long[] PIECE_FILE_PUSH_VALUES = { 0, 100, 500, 400, 600, 1200, 300 };
-    private static long[] PIECE_SWARM_VALUES = { 0, 50, 200, 333, 500, 500, 100 };
+    private static long[] PIECE_SWARM_VALUES = { 0, 50, 100, 250, 350, 400, 200 };
     private static long[] WHITE_PASSED_PAWN_VALUES = { 0, 0, 0, 0, 16, 64, 128, 0 };
     private static long[] BLACK_PASSED_PAWN_VALUES = { 0, 128, 64, 16, 0, 0, 0, 0 };
     private static long[] FILE_CENTER_DISTANCE_VALUES = { 6, 3, 1, 0, 0, 1, 3, 6 };
@@ -186,23 +186,25 @@ public class Bot_1337 : IChessBot
                     long? responseToResponseScore = (long?) moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
                     if (responseToResponseScore != null)
                     {
+                        board.UndoMove(responseToResponse);
                         return responseToResponseScore;
                     }
                     long? cachedScore = (long?)
                         moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
                     if (cachedScore != null)
                     {
+                        board.UndoMove(responseToResponse);   
                         return cachedScore;
                     }
-                    bool isMate1 = board.IsInCheckmate();
-                    if (!isMate1 && board.IsDraw())
+                    bool responseIsMate = board.IsInCheckmate();
+                    if (!responseIsMate && board.IsDraw())
                     {
                         ulong previousPlayerBitboard = board.IsWhiteToMove ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
                         // Treat draw as a win for the bare king, since that's the best he can do
-                        isMate1 = isBareKing(previousPlayerBitboard);
+                        responseIsMate = isBareKing(previousPlayerBitboard);
                     }
                     board.UndoMove(responseToResponse);
-                    if (isMate1)
+                    if (responseIsMate)
                     {
                         return 1_000_000_000_000;
                     }
