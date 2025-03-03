@@ -137,17 +137,7 @@ public class Bot_1337 : IChessBot
         {
             return (long) mateOrDraw;
         }
-
         Debug.WriteLine("Evaluating {0}", move);
-        if (move.IsCapture)
-        {
-            ulong opponentBitboardAfterMove = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-            if (isBareKing(opponentBitboardAfterMove))
-            {
-                Debug.WriteLine("This move will leave the opponent a bare king!");
-                return 900_000_000_000L;
-            }
-        }
         Move[] responses = board.GetLegalMoves();
         Debug.WriteLine("Responses: {0}", responses.Length);
         long bestResponseScore = long.MinValue;
@@ -165,23 +155,11 @@ public class Bot_1337 : IChessBot
                 return board.GetLegalMoves().Max(responseToResponse =>
                 {
                     board.MakeMove(responseToResponse);
-                    long? scoreFromDepth1Cache =
-                        (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
-                    if (scoreFromDepth1Cache != null)
-                    {
-                        board.UndoMove(responseToResponse);
-                        return scoreFromDepth1Cache;
-                    }
-
-                    var responseToResponseIsMateOrDraw =
-                        evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
+                    long? responseToResponseScore = (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
+                    responseToResponseScore ??= evaluateMateOrDraw(board, iAmABareKing, materialEval, baseline);
+                    responseToResponseScore ??= evalCaptureBonus(board, move, iAmWhite);
                     board.UndoMove(responseToResponse);
-                    if (responseToResponseIsMateOrDraw != null)
-                    {
-                        return responseToResponseIsMateOrDraw;
-                    }
-                    PieceType capturedInResponseToResponse = responseToResponse.CapturePieceType;
-                    return PIECE_VALUES[(int)capturedInResponseToResponse] * ENEMY_PIECE_VALUE_MULTIPLIER;
+                    return responseToResponseScore;
                 }) ?? 0L;
             });
             long responseScore = PIECE_VALUES[(int)capturedInResponse] * MY_PIECE_VALUE_MULTIPLIER
@@ -201,15 +179,7 @@ public class Bot_1337 : IChessBot
         Debug.WriteLine("Score based on responses: {0}", score);
         if (move.IsCapture)
         {
-            long capture_bonus = PIECE_VALUES[(int)move.CapturePieceType];
-            if (move.CapturePieceType == PieceType.Pawn)
-            {
-                capture_bonus += iAmWhite
-                    ? BLACK_PASSED_PAWN_VALUES[move.TargetSquare.Rank]
-                    : WHITE_PASSED_PAWN_VALUES[move.TargetSquare.Rank];
-            }
-
-            capture_bonus *= ENEMY_PIECE_VALUE_MULTIPLIER;
+            var capture_bonus = evalCaptureBonus(board, move, iAmWhite);
             Debug.WriteLine("Capture bonus: {0}", capture_bonus);
             score += capture_bonus;
         }
@@ -308,6 +278,28 @@ public class Bot_1337 : IChessBot
         Debug.WriteLine("Score before baselining: {0}", score);
         score -= baseline;
         return score;
+    }
+
+    private static long evalCaptureBonus(Board board, Move move, bool iAmWhite)
+    {
+        long capture_bonus;
+        ulong opponentBitboardAfterMove = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+        if (isBareKing(opponentBitboardAfterMove))
+        {
+            Debug.WriteLine("This move will leave the opponent a bare king!");
+            capture_bonus = 100_000_000_000L;
+        } else {
+            capture_bonus = PIECE_VALUES[(int)move.CapturePieceType];
+            if (move.CapturePieceType == PieceType.Pawn)
+            {
+                capture_bonus += iAmWhite
+                    ? BLACK_PASSED_PAWN_VALUES[move.TargetSquare.Rank]
+                    : WHITE_PASSED_PAWN_VALUES[move.TargetSquare.Rank];
+            }
+            capture_bonus *= ENEMY_PIECE_VALUE_MULTIPLIER;
+        }
+
+        return capture_bonus;
     }
 
     private static long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval, long baseline)
