@@ -150,11 +150,10 @@ public class Bot_1337 : IChessBot
         long bestResponseScore = long.MinValue;
         foreach (var response in responses)
         {
-            PieceType capturedInResponse = response.CapturePieceType;
             board.MakeMove(response);
             long? responseScore = responseScoreZobrist.GetOrCreate(board.ZobristKey, _ =>
             {
-                long opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+                ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
                 var mateOrDrawInResponse = evaluateMateOrDraw(board, isBareKing(opponentBitboard), -materialEval); 
                 if (mateOrDrawInResponse != null)
                 {
