@@ -23,8 +23,8 @@ public class Bot_1337 : IChessBot {
     private static long[] WHITE_PASSED_PAWN_VALUES = { 0, 0, 0, 0, 16, 64, 128, 0 };
     private static long[] BLACK_PASSED_PAWN_VALUES = { 0, 128, 64, 16, 0, 0, 0, 0 };
     private static long[] FILE_CENTER_DISTANCE_VALUES = { 6, 3, 1, 0, 0, 1, 3, 6 };
-    private static long[] WHITE_RANK_ADVANCEMENT_VALUES = { 0, 3, 5, 7, 9, 11, 12, 13 };
-    private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 13, 12, 11, 9, 7, 5, 3, 0 };
+    private static long[] WHITE_RANK_ADVANCEMENT_VALUES = { 0, 3, 6, 9, 11, 13, 14, 15 };
+    private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 15, 14, 13, 11, 9, 6, 3, 0 };
     private Random random = new();
     private MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
     private MemoryCache moveScoreZobrist = new(new MemoryCacheOptions());
@@ -33,7 +33,7 @@ public class Bot_1337 : IChessBot {
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
         if (board.PlyCount < 32) {
-            Move bookMove = TinyOpeningBook.TryGetMove(board, randomlyDontUseBookProb: (board.PlyCount) / 32);
+            Move bookMove = TinyOpeningBook.TryGetMove(board, randomlyDontUseBookProb: board.PlyCount / 32.0);
             if (!bookMove.IsNull) {
                 return bookMove;
             }
