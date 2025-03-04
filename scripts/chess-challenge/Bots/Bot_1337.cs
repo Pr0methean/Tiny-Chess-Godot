@@ -158,7 +158,7 @@ public class Bot_1337 : IChessBot {
                     return mateOrDrawInResponse;
                 }
                 long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
-                long responseCheckBonus = board.IsInCheck() ? (board.PlyCount < 10 ? ENEMY_EARLY_CHECK_BONUS : CHECK_BONUS) : 0;
+                long responseCheckBonus = board.IsInCheck() ? (board.PlyCount < 16 ? ENEMY_EARLY_CHECK_BONUS : CHECK_BONUS) : 0;
                 long bestResponseToResponseScore = board.GetLegalMoves().Max(responseToResponse => {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore =
