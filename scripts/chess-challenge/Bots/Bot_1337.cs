@@ -328,7 +328,7 @@ public class Bot_1337 : IChessBot {
 
         if (materialEval < 0) {
             // Opponent is ahead on material, so favor the draw
-            return 0;
+            return 500_000_000_000L;
         }
 
         return -500_000_000_000L;
