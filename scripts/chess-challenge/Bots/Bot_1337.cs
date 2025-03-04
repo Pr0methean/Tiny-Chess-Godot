@@ -242,7 +242,7 @@ public class Bot_1337 : IChessBot {
             Math.Abs(move.TargetSquare.File - enemyKingFile));
         int swarmAdjustment = squaresFromKingBefore - squaresFromKingAfter;
         long[] myRankValues = iAmWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES;
-        long rankPushAdjustment = myRankValues[move.StartSquare.Rank] - myRankValues[move.TargetSquare.Rank];
+        long rankPushAdjustment = myRankValues[move.TargetSquare.Rank] - myRankValues[move.StartSquare.Rank];
         long filePushAdjustment;
         bool behindUnmovedPawn;
         if (iAmWhite) {
