@@ -14,6 +14,7 @@ public class Bot_1337 : IChessBot {
     private static long MIN_REPEATED_POSITION_PENALTY = 800_000_000;
     private static long MAX_REPEATED_POSITION_PENALTY = 2_800_000_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
+    private static long ENEMY_EARLY_CHECK_BONUS = 10_000_000_000;
     private static long CHECK_BONUS = 600_000;
     private static long CASTLING_BONUS = 2_000_000;
     private static long[] PIECE_VALUES = { 0, 100, 305, 333, 563, 950, 20_000 };
@@ -156,8 +157,8 @@ public class Bot_1337 : IChessBot {
                 if (mateOrDrawInResponse != null) {
                     return mateOrDrawInResponse;
                 }
-
                 long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
+                long responseCheckBonus = board.IsInCheck() ? (board.PlyCount < 10 ? ENEMY_EARLY_CHECK_BONUS : CHECK_BONUS) : 0;
                 long bestResponseToResponseScore = board.GetLegalMoves().Max(responseToResponse => {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore =
@@ -168,7 +169,7 @@ public class Bot_1337 : IChessBot {
                     board.UndoMove(responseToResponse);
                     return responseToResponseScore;
                 }) ?? 0L;
-                return responseCaptureBonus - bestResponseToResponseScore;
+                return responseCaptureBonus + responseCheckBonus - bestResponseToResponseScore;
             });
             board.UndoMove(response);
             Debug.WriteLine("Response {0} has score {1}", response, responseScore);
