@@ -11,8 +11,8 @@ public class Bot_1337 : IChessBot {
     private static long ENEMY_PIECE_VALUE_MULTIPLIER = 1_000_000;
     private static long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
-    private static long MIN_DRAW_VALUE_WHEN_BEHIND = 200_000_000_000;
-    private static long MAX_DRAW_VALUE_WHEN_BEHIND = 800_000_000_000;
+    private static long MIN_DRAW_VALUE_WHEN_BEHIND = 10_000_000_000;
+    private static long MAX_DRAW_VALUE_WHEN_BEHIND = 30_000_000_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long ENEMY_CHECK_BONUS = 30_000_000_000;
     private static long CHECK_BONUS = 1_000_000;
