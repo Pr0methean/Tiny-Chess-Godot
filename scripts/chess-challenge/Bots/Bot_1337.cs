@@ -11,8 +11,8 @@ public class Bot_1337 : IChessBot {
     private static long ENEMY_PIECE_VALUE_MULTIPLIER = 1_000_000;
     private static long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
-    private static long MIN_REPEATED_POSITION_PENALTY = 800_000_000;
-    private static long MAX_REPEATED_POSITION_PENALTY = 2_800_000_000;
+    private static long MIN_DRAW_VALUE_WHEN_BEHIND = 200_000_000_000;
+    private static long MAX_DRAW_VALUE_WHEN_BEHIND = 800_000_000_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long ENEMY_CHECK_BONUS = 30_000_000_000;
     private static long CHECK_BONUS = 1_000_000;
@@ -26,7 +26,7 @@ public class Bot_1337 : IChessBot {
     private static long[] FILE_CENTER_DISTANCE_VALUES = { 6, 3, 1, 0, 0, 1, 3, 6 };
     private static long[] WHITE_RANK_ADVANCEMENT_VALUES = { 0, 3, 6, 9, 11, 13, 14, 15 };
     private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 15, 14, 13, 11, 9, 6, 3, 0 };
-    private Random random = new();
+    private static Random random = new();
     private MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
     private MemoryCache moveScoreZobrist = new(new MemoryCacheOptions());
     private MemoryCache responseScoreZobrist = new(new MemoryCacheOptions());
@@ -328,10 +328,12 @@ public class Bot_1337 : IChessBot {
 
         if (materialEval < 0) {
             // Opponent is ahead on material, so favor the draw
-            return 500_000_000_000L;
+            return random.NextInt64(MIN_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
+        } else if (materialEval > 0) {
+            return -random.NextInt64(MIN_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
         }
 
-        return -500_000_000_000L;
+        return -random.NextInt64(-MAX_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
     }
 
     private static bool isBareKing(ulong bitboard) {
