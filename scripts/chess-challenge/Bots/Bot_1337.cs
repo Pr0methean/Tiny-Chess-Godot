@@ -168,11 +168,11 @@ public class Bot_1337 : IChessBot {
                     responseToResponseScore ??=
                         evalCaptureBonus(board, responseToResponse, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                     board.UndoMove(responseToResponse);
-                    if (responseToResponseScore >= 1_000_000_000_000) {
-                        bestResponseToResponseScore = responseToResponseScore;
+                    if ((long) responseToResponseScore >= 1_000_000_000_000) {
+                        bestResponseToResponseScore = (long) responseToResponseScore;
                         break;
-                    } else if (responseToResponseScore > bestResponseToResponseScore) {
-                        bestResponseToResponseScore = responseToResponseScore;
+                    } else if ((long) responseToResponseScore > bestResponseToResponseScore) {
+                        bestResponseToResponseScore = (long) responseToResponseScore;
                     }
                 }
                 return responseCaptureBonus + responseCheckBonus - bestResponseToResponseScore;
