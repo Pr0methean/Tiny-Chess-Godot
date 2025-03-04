@@ -116,17 +116,17 @@ public class Bot_1337 : IChessBot {
             long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move),
                 _ => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite)
                      - minOpptMovesBaseline);
-            // Repeated positions don't factor into the Zobrist hash, so the penalty for them must be applied separately
+            // Repeated positions don't factor into the Zobrist hash, but the API treats them as draws (even if they've
+            // only occurred once before)
             if (board.IsRepeatedPosition()) {
-                long penalty = random.NextInt64(MIN_REPEATED_POSITION_PENALTY, MAX_REPEATED_POSITION_PENALTY);
-                Debug.WriteLine("Repeated position penalty: {0}", penalty);
-                score -= penalty;
+                score = evaluateDraw(iAmABareKing, materialEval);
+                goto scoreFinished;
             }
 
             if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
                 score += fiftyMoveResetValue;
             }
-
+            scoreFinished:
             board.UndoMove(move);
             Debug.WriteLine("Move {0} has score {1}", move, score);
             if (bestMove == null || score > bestScore || (score == bestScore && random.Next(2) == 0)) {
@@ -314,22 +314,24 @@ public class Bot_1337 : IChessBot {
         if (board.IsInCheckmate()) {
             return 1_000_000_000_000L;
         }
-
         if (board.IsDraw()) {
-            if (iAmABareKing) {
-                // A draw is as good as a win for a bare king since it's the best he can do
-                return 1_000_000_000_000L;
-            }
+            return evaluateDraw(iAmABareKing, materialEval);
+        }
+        return null;
+    }
 
-            if (materialEval < 0) {
-                // Opponent is ahead on material, so favor the draw
-                return 0;
-            }
-
-            return -500_000_000_000L;
+    private static long evaluateDraw(bool iAmABareKing, long materialEval) {
+        if (iAmABareKing) {
+            // A draw is as good as a win for a bare king since it's the best he can do
+            return 1_000_000_000_000L;
         }
 
-        return null;
+        if (materialEval < 0) {
+            // Opponent is ahead on material, so favor the draw
+            return 0;
+        }
+
+        return -500_000_000_000L;
     }
 
     private static bool isBareKing(ulong bitboard) {
