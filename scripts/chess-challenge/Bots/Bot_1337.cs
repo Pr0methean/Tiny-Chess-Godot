@@ -159,7 +159,8 @@ public class Bot_1337 : IChessBot {
                 }
                 long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
                 long responseCheckBonus = board.IsInCheck() ? ENEMY_CHECK_BONUS : 0;
-                long bestResponseToResponseScore = board.GetLegalMoves().Max(responseToResponse => {
+                long bestResponseToResponseScore = long.MinValue;
+                foreach(var responseToResponse in board.GetLegalMoves()) {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore =
                         (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
@@ -167,8 +168,13 @@ public class Bot_1337 : IChessBot {
                     responseToResponseScore ??=
                         evalCaptureBonus(board, responseToResponse, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                     board.UndoMove(responseToResponse);
-                    return responseToResponseScore;
-                }) ?? 0L;
+                    if (responseToResponseScore >= 1_000_000_000_000) {
+                        bestResponseToResponseScore = responseToResponseScore;
+                        break;
+                    } else if (responseToResponseScore > bestResponseToResponseScore) {
+                        bestResponseToResponseScore = responseToResponseScore;
+                    }
+                }
                 return responseCaptureBonus + responseCheckBonus - bestResponseToResponseScore;
             });
             board.UndoMove(response);
