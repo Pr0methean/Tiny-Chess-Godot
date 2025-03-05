@@ -11,7 +11,7 @@ public class Bot_1337 : IChessBot {
     private static long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private static long PENALTY_PER_ENEMY_MOVE = 1_000_000;
     private static long MIN_DRAW_VALUE_WHEN_BEHIND = 0;
-    private static long MAX_DRAW_VALUE_WHEN_BEHIND = 10_000_000_000;
+    private static long MAX_DRAW_VALUE_WHEN_BEHIND = 500_000_000;
     private static long MAX_MOVE_VALUE_NOISE = 1_000;
     private static long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private static long ENEMY_CHECK_BONUS = 1_000_000_000;
@@ -232,13 +232,13 @@ public class Bot_1337 : IChessBot {
                                   + PIECE_SWARM_VALUES[(int)pushingPiece] * swarmAdjustment;
                         scoreFinishedExceptNoise:
                         Debug.WriteLine("Score before baselining and noise: {0}", score);
-                        score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                         // score -= baseline;
                         return score;
                     });
                 if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
                     score += fiftyMoveResetValue;
                 }
+                score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
             }
 
             board.UndoMove(move);
