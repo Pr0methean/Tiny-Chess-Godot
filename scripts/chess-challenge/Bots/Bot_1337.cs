@@ -93,7 +93,7 @@ public class Bot_1337 : IChessBot {
                         }
 
                         Debug.WriteLine("Evaluating {0}", move);
-                        long score1 = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
+                        long score = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
                             Move[] responses = getLegalMoves(board);
                             Debug.WriteLine("Responses: {0}", responses.Length);
                             long bestResponseScore = long.MinValue;
@@ -144,41 +144,41 @@ public class Bot_1337 : IChessBot {
                                 }
                             }
 
-                            return minOpptMovesScore(responses) - bestResponseScore;
+                            return minOpptMovesScore(responses) - minOpptMovesBaseline - bestResponseScore;
                         });
-                        Debug.WriteLine("Score based on responses: {0}", score1);
+                        Debug.WriteLine("Score based on responses: {0}", score);
                         if (move.IsCapture) {
                             var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                             Debug.WriteLine("Capture bonus: {0}", capture_bonus);
-                            score1 += capture_bonus;
+                            score += capture_bonus;
                         }
 
                         if (iAmABareKing) {
-                            goto scoreFinishedExceptBaselining;
+                            goto scoreFinishedExceptNoise;
                         }
 
                         if (board.IsInCheck()) {
                             Debug.WriteLine("Check bonus: {0}", CHECK_BONUS);
-                            score1 += CHECK_BONUS;
+                            score += CHECK_BONUS;
                         }
 
                         if (move.IsCastles) {
                             Debug.WriteLine("Castling bonus: {0}", CASTLING_BONUS);
-                            score1 += CASTLING_BONUS;
+                            score += CASTLING_BONUS;
                             // Push/swarm logic won't handle castling well, so skip it
-                            goto scoreFinishedExceptBaselining;
+                            goto scoreFinishedExceptNoise;
                         }
 
                         if (board.PlyCount < 10 && (move.MovePieceType is PieceType.Bishop or PieceType.Rook or PieceType.Queen
                                                     || move is { MovePieceType: PieceType.Knight, TargetSquare.Rank: 0 or 7 })
                                                 && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7) {
                             Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
-                            score1 -= SAME_PIECE_OPENING_MOVE_PENALTY;
+                            score -= SAME_PIECE_OPENING_MOVE_PENALTY;
                         }
 
                         PieceType pushingPiece = move.MovePieceType;
                         if (move.IsPromotion) {
-                            score1 += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
+                            score += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
                             pushingPiece = move.PromotionPieceType;
                         }
 
@@ -231,14 +231,14 @@ public class Bot_1337 : IChessBot {
 
                         Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
                             filePushAdjustment);
-                        score1 += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
+                        score += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
                                   + PIECE_FILE_PUSH_VALUES[(int)pushingPiece] * filePushAdjustment
                                   + PIECE_SWARM_VALUES[(int)pushingPiece] * swarmAdjustment;
-                        scoreFinishedExceptBaselining:
-                        Debug.WriteLine("Score before baselining and noise: {0}", score1);
-                        score1 += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
+                        scoreFinishedExceptNoise:
+                        Debug.WriteLine("Score before baselining and noise: {0}", score);
+                        score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                         // score -= baseline;
-                        return score1;
+                        return score;
                     });
                 if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
                     score += fiftyMoveResetValue;
