@@ -99,7 +99,6 @@ public class Bot_1337 : IChessBot {
                             long bestResponseScore = long.MinValue;
                             foreach (var response in responses) {
                                 board.MakeMove(response);
-                                ulong opponentBitboard1 = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
                                 long responseScore;
                                 var mateOrDrawInResponse = evaluateMateOrDraw(board, opponentIsBareKing, -materialEval);
                                 if (mateOrDrawInResponse != null) {
@@ -130,12 +129,13 @@ public class Bot_1337 : IChessBot {
                                             bestResponseToResponseScore = (long)responseToResponseScore;
                                         }
                                     }
+
                                     responseScore = responseCaptureBonus + responseCheckBonus + responsePromotionBonus -
                                                     bestResponseToResponseScore;
-                                    Debug.WriteLine("Response {0} has score {1}", response, responseScore);
-                                    if (responseScore > bestResponseScore) {
-                                        bestResponseScore = responseScore;
-                                    }
+                                }
+                                Debug.WriteLine("Response {0} has score {1}", response, responseScore);
+                                if (responseScore > bestResponseScore) {
+                                    bestResponseScore = responseScore;
                                 }
                                 board.UndoMove(response);
                             }
