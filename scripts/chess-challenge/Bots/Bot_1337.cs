@@ -160,6 +160,8 @@ public class Bot_1337 : IChessBot {
                 }
                 long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
                 long responseCheckBonus = board.IsInCheck() ? ENEMY_CHECK_BONUS : 0;
+                long responsePromotionBonus = response.IsPromotion ? 
+                    PIECE_VALUES[(int)response.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER : 0;
                 long bestResponseToResponseScore = long.MinValue;
                 foreach(var responseToResponse in board.GetLegalMoves()) {
                     board.MakeMove(responseToResponse);
@@ -176,7 +178,7 @@ public class Bot_1337 : IChessBot {
                         bestResponseToResponseScore = (long) responseToResponseScore;
                     }
                 }
-                return responseCaptureBonus + responseCheckBonus - bestResponseToResponseScore;
+                return responseCaptureBonus + responseCheckBonus + responsePromotionBonus - bestResponseToResponseScore;
             });
             board.UndoMove(response);
             Debug.WriteLine("Response {0} has score {1}", response, responseScore);
@@ -201,22 +203,22 @@ public class Bot_1337 : IChessBot {
             Debug.WriteLine("Check bonus: {0}", CHECK_BONUS);
             score += CHECK_BONUS;
         }
-
-        if (move.IsPromotion) {
-            score += MY_PIECE_VALUE_MULTIPLIER * (PIECE_VALUES[(int)move.PromotionPieceType] - 100);
-        }
-
         if (move.IsCastles) {
             Debug.WriteLine("Castling bonus: {0}", CASTLING_BONUS);
             score += CASTLING_BONUS;
             // Push/swarm logic won't handle castling well, so skip it
             goto scoreFinishedExceptBaselining;
         }
-        else if (board.PlyCount < 10 && (move.MovePieceType is PieceType.Bishop or PieceType.Rook or PieceType.Queen
+        if (board.PlyCount < 10 && (move.MovePieceType is PieceType.Bishop or PieceType.Rook or PieceType.Queen
                                          || move is { MovePieceType: PieceType.Knight, TargetSquare.Rank: 0 or 7 })
                                      && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7) {
             Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
             score -= SAME_PIECE_OPENING_MOVE_PENALTY;
+        }
+        PieceType pushingPiece = move.MovePieceType;
+        if (move.IsPromotion) {
+            score += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
+            pushingPiece = move.PromotionPieceType;
         }
 
         /*
@@ -274,9 +276,9 @@ public class Bot_1337 : IChessBot {
 
         Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
             filePushAdjustment);
-        score += PIECE_RANK_PUSH_VALUES[(int)move.MovePieceType] * rankPushAdjustment
-                 + PIECE_FILE_PUSH_VALUES[(int)move.MovePieceType] * filePushAdjustment
-                 + PIECE_SWARM_VALUES[(int)move.MovePieceType] * swarmAdjustment;
+        score += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
+                 + PIECE_FILE_PUSH_VALUES[(int)pushingPiece] * filePushAdjustment
+                 + PIECE_SWARM_VALUES[(int)pushingPiece] * swarmAdjustment;
         scoreFinishedExceptBaselining:
         Debug.WriteLine("Score before baselining and noise: {0}", score);
         score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
