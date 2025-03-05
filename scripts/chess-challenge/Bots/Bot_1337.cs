@@ -134,6 +134,7 @@ public class Bot_1337 : IChessBot {
                                                     bestResponseToResponseScore;
                                 }
                                 Debug.WriteLine("Response {0} has score {1}", response, responseScore);
+                                board.UndoMove(response);
                                 if (responseScore >= 1_000_000_000_000) {
                                     bestResponseScore = responseScore;
                                     break;
@@ -141,7 +142,6 @@ public class Bot_1337 : IChessBot {
                                 if (responseScore > bestResponseScore) {
                                     bestResponseScore = responseScore;
                                 }
-                                board.UndoMove(response);
                             }
 
                             return minOpptMovesScore(responses) - bestResponseScore;
