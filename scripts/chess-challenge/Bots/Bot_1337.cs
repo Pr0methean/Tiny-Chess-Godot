@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Internal;
+
 namespace auto_Bot_1337;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -28,11 +30,23 @@ public class Bot_1337 : IChessBot {
     private static long[] WHITE_RANK_ADVANCEMENT_VALUES = { 0, 3, 6, 9, 11, 13, 14, 15 };
     private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 15, 14, 13, 11, 9, 6, 3, 0 };
     private static Random random = new();
-    private static MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
-    private static MemoryCache legalMovesZobrist = new(new MemoryCacheOptions());
-    public MemoryCache mateOrDrawZobrist = new(new MemoryCacheOptions());
-    private MemoryCache moveScoreZobrist = new(new MemoryCacheOptions());
-    private MemoryCache responseScoreZobrist = new(new MemoryCacheOptions());
+    private static MemoryCacheOptions cacheOptions = new();
+    
+
+    private class NoClock : ISystemClock {
+        private DateTimeOffset start = DateTimeOffset.UtcNow;
+        public DateTimeOffset UtcNow => start;
+    }
+    static Bot_1337() {
+        cacheOptions.TrackStatistics = false;
+        cacheOptions.ExpirationScanFrequency = TimeSpan.MaxValue;
+        cacheOptions.Clock = new NoClock();
+    }
+    private static MemoryCache materialEvalZobrist = new(cacheOptions);
+    private static MemoryCache legalMovesZobrist = new(cacheOptions);  
+    public MemoryCache mateOrDrawZobrist = new(cacheOptions);
+    private MemoryCache moveScoreZobrist = new(cacheOptions);
+    private MemoryCache responseScoreZobrist = new(cacheOptions);
     
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
