@@ -73,7 +73,7 @@ public class Bot_1337 : IChessBot {
         baseline = Math.Max(Math.Min(baseline, 1_000_000_000), -1_000_000_000);
 
         board.UndoMove(Move.NullMove);
-        Debug.WriteLine("Null move has baseline score of {0}", 1baseline);
+        Debug.WriteLine("Null move has baseline score of {0}", baseline);
         */
         Move? bestMove = null;
         Move[] moves = getLegalMoves(board);
@@ -143,8 +143,8 @@ public class Bot_1337 : IChessBot {
                                     bestResponseScore = responseScore;
                                 }
                             }
-                            return minOpptMovesScore(responses) - minOpptMovesBaseline - bestResponseScore;
-                        });
+                            return minOpptMovesScore(responses) - bestResponseScore;
+                        }) - minOpptMovesBaseline;
                         Debug.WriteLine("Score based on responses: {0}", score);
                         if (move.IsCapture) {
                             var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
