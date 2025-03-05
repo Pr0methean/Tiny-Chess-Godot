@@ -287,12 +287,11 @@ namespace ChessChallenge.Chess
                 fiftyMovePlyCount = 0;
                 moveCount = 0;
 
-                if (sections.Length > 3)
-                {
-                    string enPassantFileName = sections[3][0].ToString();
+                if (sections.Length > 3) {
+                    char enPassantFileName = sections[3][0];
                     if (BoardHelper.fileNames.Contains(enPassantFileName))
                     {
-                        epFile = BoardHelper.fileNames.IndexOf(enPassantFileName) + 1;
+                        epFile = enPassantFileName - 'a';
                     }
                 }
 

@@ -1,3 +1,6 @@
+using System.Text;
+using Microsoft.Extensions.Primitives;
+
 namespace ChessChallenge.Chess
 {
 	// Helper class for converting between various move representations:
@@ -116,37 +119,22 @@ namespace ChessChallenge.Chess
 			}
 
 			MoveGenerator moveGen = new MoveGenerator();
-			string moveNotation = GetSymbolFromPieceType(movePieceType);
+			StringBuilder moveNotation = new(GetSymbolFromPieceType(movePieceType));
 
 			// check if any ambiguity exists in notation (e.g if e2 can be reached via Nfe2 and Nbe2)
-			if (movePieceType != PieceHelper.Pawn && movePieceType != PieceHelper.King)
-			{
+			if (movePieceType != PieceHelper.Pawn && movePieceType != PieceHelper.King) { 
 				var allMoves = moveGen.GenerateMoves(board);
-
-				foreach (Move altMove in allMoves)
-				{
-
-					if (altMove.StartSquareIndex != move.StartSquareIndex && altMove.TargetSquareIndex == move.TargetSquareIndex)
-					{ // if moving to same square from different square
-						if (PieceHelper.PieceType(board.Square[altMove.StartSquareIndex]) == movePieceType)
-						{ // same piece type
-							int fromFileIndex = BoardHelper.FileIndex(move.StartSquareIndex);
-							int alternateFromFileIndex = BoardHelper.FileIndex(altMove.StartSquareIndex);
-							int fromRankIndex = BoardHelper.RankIndex(move.StartSquareIndex);
-							int alternateFromRankIndex = BoardHelper.RankIndex(altMove.StartSquareIndex);
-
-							if (fromFileIndex != alternateFromFileIndex)
-							{ // pieces on different files, thus ambiguity can be resolved by specifying file
-								moveNotation += BoardHelper.fileNames[fromFileIndex];
-								break; // ambiguity resolved
-							}
-							else if (fromRankIndex != alternateFromRankIndex)
-							{
-								moveNotation += BoardHelper.rankNames[fromRankIndex];
-								break; // ambiguity resolved
-							}
-						}
-					}
+				int fromFileIndex = BoardHelper.FileIndex(move.StartSquareIndex);
+				int fromRankIndex = BoardHelper.RankIndex(move.StartSquareIndex);
+				
+				foreach (Move altMove in allMoves) {
+					if (altMove.StartSquareIndex == move.StartSquareIndex ||
+					    altMove.TargetSquareIndex != move.TargetSquareIndex) continue;
+					// if moving to same square from different square
+					if (PieceHelper.PieceType(board.Square[altMove.StartSquareIndex]) !=
+					    movePieceType) continue; // same piece type
+					moveNotation.Append(BoardHelper.fileNames[fromFileIndex]);
+					moveNotation.Append(BoardHelper.rankNames[fromRankIndex]);
 
 				}
 			}
@@ -155,26 +143,26 @@ namespace ChessChallenge.Chess
 			{ // add 'x' to indicate capture
 				if (movePieceType == PieceHelper.Pawn)
 				{
-					moveNotation += BoardHelper.fileNames[BoardHelper.FileIndex(move.StartSquareIndex)];
+					moveNotation.Append(BoardHelper.fileNames[BoardHelper.FileIndex(move.StartSquareIndex)]);
 				}
-				moveNotation += "x";
+				moveNotation.Append('x');
 			}
 			else
 			{ // check if capturing ep
 				if (move.MoveFlag == Move.EnPassantCaptureFlag)
 				{
-					moveNotation += BoardHelper.fileNames[BoardHelper.FileIndex(move.StartSquareIndex)] + "x";
+					moveNotation.Append(BoardHelper.fileNames[BoardHelper.FileIndex(move.StartSquareIndex)]).Append('x');
 				}
 			}
 
-			moveNotation += BoardHelper.fileNames[BoardHelper.FileIndex(move.TargetSquareIndex)];
-			moveNotation += BoardHelper.rankNames[BoardHelper.RankIndex(move.TargetSquareIndex)];
+			moveNotation.Append(BoardHelper.fileNames[BoardHelper.FileIndex(move.TargetSquareIndex)]);
+			moveNotation.Append(BoardHelper.rankNames[BoardHelper.RankIndex(move.TargetSquareIndex)]);
 
 			// add promotion piece
 			if (move.IsPromotion)
 			{
 				int promotionPieceType = move.PromotionPieceType;
-				moveNotation += "=" + GetSymbolFromPieceType(promotionPieceType);
+				moveNotation.Append('=').Append(GetSymbolFromPieceType(promotionPieceType));
 			}
 
 			board.MakeMove(move, inSearch: true);
@@ -184,16 +172,16 @@ namespace ChessChallenge.Chess
 			{
 				if (legalResponses.Length == 0)
 				{
-					moveNotation += "#";
+					moveNotation.Append('#');
 				}
 				else
 				{
-					moveNotation += "+";
+					moveNotation.Append('+');
 				}
 			}
 			board.UndoMove(move, inSearch: true);
 
-			return moveNotation;
+			return moveNotation.ToString();
 
 			string GetSymbolFromPieceType(int pieceType)
 			{
@@ -249,15 +237,15 @@ namespace ChessChallenge.Chess
 					}
 				}
 				// Is pawn move if starts with any file indicator (e.g. 'e'4. Note that uppercase B is used for bishops) 
-				else if (BoardHelper.fileNames.Contains(algebraicMove[0].ToString()))
+				else if (BoardHelper.fileNames.Contains(algebraicMove[0]))
 				{
 					if (movePieceType != PieceHelper.Pawn)
 					{
 						continue;
 					}
-					if (BoardHelper.fileNames.IndexOf(algebraicMove[0]) == fromCoord.fileIndex)
+					if (BoardHelper.fileNames[fromCoord.fileIndex] == algebraicMove[0])
 					{ // correct starting file
-						if (algebraicMove.Contains("="))
+						if (algebraicMove.Contains('='))
 						{ // is promotion
 							if (toCoord.rankIndex == 0 || toCoord.rankIndex == 7)
 							{
@@ -265,7 +253,7 @@ namespace ChessChallenge.Chess
 								if (algebraicMove.Length == 5) // pawn is capturing to promote
 								{
 									char targetFile = algebraicMove[1];
-									if (BoardHelper.fileNames.IndexOf(targetFile) != toCoord.fileIndex)
+									if (BoardHelper.fileNames[toCoord.fileIndex] != targetFile)
 									{
 										// Skip if not moving to correct file
 										continue;
@@ -287,9 +275,9 @@ namespace ChessChallenge.Chess
 							char targetFile = algebraicMove[algebraicMove.Length - 2];
 							char targetRank = algebraicMove[algebraicMove.Length - 1];
 
-							if (BoardHelper.fileNames.IndexOf(targetFile) == toCoord.fileIndex)
+							if (BoardHelper.fileNames[toCoord.fileIndex] == targetFile)
 							{ // correct ending file
-								if (targetRank.ToString() == (toCoord.rankIndex + 1).ToString())
+								if (BoardHelper.rankNames[toCoord.rankIndex] == targetRank)
 								{ // correct ending rank
 									break;
 								}
@@ -306,31 +294,20 @@ namespace ChessChallenge.Chess
 						continue; // skip this move, incorrect move piece type
 					}
 
-					char targetFile = algebraicMove[algebraicMove.Length - 2];
-					char targetRank = algebraicMove[algebraicMove.Length - 1];
-					if (BoardHelper.fileNames.IndexOf(targetFile) == toCoord.fileIndex)
+					char targetFile = algebraicMove[^2];
+					char targetRank = algebraicMove[^1];
+					if (BoardHelper.fileNames[toCoord.fileIndex] == targetFile)
 					{ // correct ending file
-						if (targetRank.ToString() == (toCoord.rankIndex + 1).ToString())
+						if (BoardHelper.rankNames[toCoord.rankIndex] == targetRank)
 						{ // correct ending rank
 
 							if (algebraicMove.Length == 4)
 							{ // addition char present for disambiguation (e.g. Nbd7 or R7e2)
 								char disambiguationChar = algebraicMove[1];
-
-								if (BoardHelper.fileNames.Contains(disambiguationChar.ToString()))
-								{ // is file disambiguation
-									if (BoardHelper.fileNames.IndexOf(disambiguationChar) != fromCoord.fileIndex)
-									{ // incorrect starting file
-										continue;
-									}
-								}
-								else
-								{ // is rank disambiguation
-									if (disambiguationChar.ToString() != (fromCoord.rankIndex + 1).ToString())
-									{ // incorrect starting rank
-										continue;
-									}
-
+								if (BoardHelper.fileNames[fromCoord.fileIndex] != disambiguationChar
+								    && BoardHelper.rankNames[fromCoord.rankIndex] != disambiguationChar)
+								{
+									continue; // skip this move, incorrect disambiguation
 								}
 							}
 							break;

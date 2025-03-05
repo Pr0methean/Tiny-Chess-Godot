@@ -6,8 +6,8 @@
         public static readonly Coord[] RookDirections = { new Coord(-1, 0), new Coord(1, 0), new Coord(0, 1), new Coord(0, -1) };
         public static readonly Coord[] BishopDirections = { new Coord(-1, 1), new Coord(1, 1), new Coord(1, -1), new Coord(-1, -1) };
 
-        public const string fileNames = "abcdefgh";
-        public const string rankNames = "12345678";
+        public static readonly char[] fileNames = ['a','b','c','d','e','f','g','h'];
+        public static readonly char[] rankNames = ['1','2','3','4','5','6','7','8'];
 
         public const int a1 = 0;
         public const int b1 = 1;
