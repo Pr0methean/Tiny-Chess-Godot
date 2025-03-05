@@ -247,6 +247,9 @@ public class Bot_1337 : IChessBot {
 
             board.UndoMove(move);
             Debug.WriteLine("Move {0} has score {1}", move, score);
+            if (score >= 1_000_000_000_000) {
+                return move;
+            }
             if (bestMove == null || score > bestScore || (score == bestScore && random.Next(2) == 0)) {
                 bestScore = score;
                 bestMove = move;
@@ -338,8 +341,8 @@ public class Bot_1337 : IChessBot {
 
     private static long evaluateDraw(bool iAmABareKing, long materialEval) {
         if (iAmABareKing) {
-            // A draw is as good as a win for a bare king since it's the best he can do
-            return 1_000_000_000_000L;
+            // A draw is almost as good as a win for a bare king since it's the best he can do
+            return 900_000_000_000L;
         }
 
         if (materialEval < 0) {
