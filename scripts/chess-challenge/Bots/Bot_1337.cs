@@ -181,7 +181,6 @@ public class Bot_1337 : IChessBot {
                             bestResponseToResponseScore = (long)responseToResponseScore;
                         }
                     }
-                    board.UndoMove(response);
                     responseScore = responseCaptureBonus + responseCheckBonus + responsePromotionBonus -
                                     bestResponseToResponseScore;
                     Debug.WriteLine("Response {0} has score {1}", response, responseScore);
@@ -189,6 +188,7 @@ public class Bot_1337 : IChessBot {
                         bestResponseScore = responseScore;
                     }
                 }
+                board.UndoMove(response);
             }
 
             return minOpptMovesScore(responses) - bestResponseScore;
