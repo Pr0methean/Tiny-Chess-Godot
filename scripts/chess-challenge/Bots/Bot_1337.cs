@@ -1,8 +1,5 @@
-using Microsoft.Extensions.Internal;
-
 namespace auto_Bot_1337;
 
-using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 using System.Linq;
 using System;
