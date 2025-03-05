@@ -280,7 +280,7 @@ public class Bot_1337 : IChessBot {
                  + PIECE_SWARM_VALUES[(int)move.MovePieceType] * swarmAdjustment;
         scoreFinishedExceptBaselining:
         Debug.WriteLine("Score before baselining and noise: {0}", score);
-        score += random.NextInt64(MAX_MOVE_VALUE_NOISE);
+        score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
         // score -= baseline;
         return score;
     }
