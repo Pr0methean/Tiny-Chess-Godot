@@ -48,6 +48,8 @@ public class Bot_1337 : IChessBot {
         int negateIfWhite = iAmWhite ? -1 : 1;
         ulong myBitboard = iAmWhite ? board.WhitePiecesBitboard : board.BlackPiecesBitboard;
         bool iAmABareKing = isBareKing(myBitboard);
+        ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+        bool opponentIsBareKing = isBareKing(opponentBitboard);
         long materialEval = getMaterialEval(board, iAmWhite);
         long fiftyMoveResetValue = 0;
         long fiftyMoveCounter = board.FiftyMoveCounter;
@@ -77,21 +79,19 @@ public class Bot_1337 : IChessBot {
         Move[] moves = getLegalMoves(board);
         foreach (Move move in moves) {
             board.MakeMove(move);
-            long score = moveScoreZobrist.GetOrCreate<UInt128, long>(board.ZobristKey + (UInt128)move.RawValue << 64,
-                () => evaluateMadeMove(board, iAmABareKing, materialEval, move, iAmWhite, negateIfWhite)
-                     - minOpptMovesBaseline);
             // Repeated positions don't factor into the Zobrist hash, but the API treats them as draws (even if they've
             // only occurred once before)
+            long score;
             if (board.IsRepeatedPosition()) {
                 score = evaluateDraw(iAmABareKing, materialEval);
-                goto scoreFinished;
+            } else {
+                score = moveScoreZobrist.GetOrCreate<UInt128, long>(board.ZobristKey + (UInt128)move.RawValue << 64,
+                    () => evaluateMadeMove(board, iAmABareKing, opponentIsBareKing, materialEval, move, iAmWhite, negateIfWhite));
+                if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
+                    score += fiftyMoveResetValue;
+                }
             }
 
-            if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
-                score += fiftyMoveResetValue;
-            }
-
-            scoreFinished:
             board.UndoMove(move);
             Debug.WriteLine("Move {0} has score {1}", move, score);
             if (bestMove == null || score > bestScore || (score == bestScore && random.Next(2) == 0)) {
@@ -111,12 +111,12 @@ public class Bot_1337 : IChessBot {
         return materialEvalZobrist.GetOrCreate(board.ZobristKey, () => {
             if (isBareKing(board.WhitePiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: white is a bare king!");
-                return -100_000_000_000L;
+                return 100_000_000_000L;
             }
 
             if (isBareKing(board.BlackPiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: black is a bare king!");
-                return 100_000_000_000L;
+                return -100_000_000_000L;
             }
 
             long materialEval = 0;
@@ -133,10 +133,10 @@ public class Bot_1337 : IChessBot {
 
             Debug.WriteLine("Material eval: {0}", materialEval);
             return materialEval;
-        })! * (iAmWhite ? -1 : 1);
+        }) * (iAmWhite ? -1 : 1);
     }
 
-    public long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
+    public long evaluateMadeMove(Board board, bool iAmABareKing, bool opponentIsABareKing, long materialEval, Move move, bool iAmWhite,
         int negateIfWhite) {
         var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
         if (mateOrDraw != null) {
@@ -152,7 +152,7 @@ public class Bot_1337 : IChessBot {
                 board.MakeMove(response);
                 ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
                 long responseScore;
-                var mateOrDrawInResponse = evaluateMateOrDraw(board, isBareKing(opponentBitboard), -materialEval);
+                var mateOrDrawInResponse = evaluateMateOrDraw(board, opponentIsABareKing, -materialEval);
                 if (mateOrDrawInResponse != null) {
                     responseScore = (long) (mateOrDrawInResponse);
                 } else {
