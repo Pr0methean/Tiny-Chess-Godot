@@ -85,7 +85,7 @@ public class Bot_1337 : IChessBot {
             if (board.IsRepeatedPosition()) {
                 score = evaluateDraw(iAmABareKing, materialEval);
             } else {
-                score = moveScoreZobrist.GetOrCreate<UInt128, long>(board.ZobristKey + (UInt128)move.RawValue << 64,
+                score = moveScoreZobrist.GetOrCreate(board.ZobristKey | (UInt128)move.RawValue << 64,
                     () => {
                         var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
                         if (mateOrDraw != null) {
@@ -113,7 +113,7 @@ public class Bot_1337 : IChessBot {
                                     foreach (var responseToResponse in getLegalMoves(board)) {
                                         board.MakeMove(responseToResponse);
                                         long responseToResponseScore;
-                                        if (!moveScoreZobrist.TryGetValue(board.ZobristKey + (UInt128)responseToResponse.RawValue << 64,
+                                        if (!moveScoreZobrist.TryGetValue(board.ZobristKey | (UInt128)responseToResponse.RawValue << 64,
                                                 out responseToResponseScore)) {
                                             responseToResponseScore = evaluateMateOrDraw(board, iAmABareKing, materialEval)
                                                                       ??
@@ -143,7 +143,6 @@ public class Bot_1337 : IChessBot {
                                     bestResponseScore = responseScore;
                                 }
                             }
-
                             return minOpptMovesScore(responses) - minOpptMovesBaseline - bestResponseScore;
                         });
                         Debug.WriteLine("Score based on responses: {0}", score);
