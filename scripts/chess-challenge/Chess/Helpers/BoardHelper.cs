@@ -84,8 +84,8 @@
         {
             char fileName = name[0];
             char rankName = name[1];
-            int fileIndex = fileNames.IndexOf(fileName);
-            int rankIndex = rankNames.IndexOf(rankName);
+            int fileIndex = fileName - 'a';
+            int rankIndex = rankName - '1';
             return IndexFromCoord(fileIndex, rankIndex);
         }
 
