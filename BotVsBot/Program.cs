@@ -13,9 +13,8 @@ board.LoadStartPosition();
 bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
-object? mateOrDraw;
+long? mateOrDraw;
 do {
-    mateOrDraw = null;
     IChessBot botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
     Debug.WriteLine("Chosen move: " + move);
