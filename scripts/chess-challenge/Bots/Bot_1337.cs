@@ -50,7 +50,7 @@ public class Bot_1337 : IChessBot {
         bool iAmABareKing = isBareKing(myBitboard);
         ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
         bool opponentIsBareKing = isBareKing(opponentBitboard);
-        long materialEval = getMaterialEval(board, iAmWhite);
+        long materialEval = evaluateMaterial(board, iAmWhite);
         long fiftyMoveResetValue = 0;
         long fiftyMoveCounter = board.FiftyMoveCounter;
         if (materialEval > 0 && fiftyMoveCounter >= 60) {
@@ -86,7 +86,156 @@ public class Bot_1337 : IChessBot {
                 score = evaluateDraw(iAmABareKing, materialEval);
             } else {
                 score = moveScoreZobrist.GetOrCreate<UInt128, long>(board.ZobristKey + (UInt128)move.RawValue << 64,
-                    () => evaluateMadeMove(board, iAmABareKing, opponentIsBareKing, materialEval, move, iAmWhite, negateIfWhite));
+                    () => {
+                        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
+                        if (mateOrDraw != null) {
+                            return (long)mateOrDraw;
+                        }
+
+                        Debug.WriteLine("Evaluating {0}", move);
+                        long score1 = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
+                            Move[] responses = getLegalMoves(board);
+                            Debug.WriteLine("Responses: {0}", responses.Length);
+                            long bestResponseScore = long.MinValue;
+                            foreach (var response in responses) {
+                                board.MakeMove(response);
+                                ulong opponentBitboard1 = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
+                                long responseScore;
+                                var mateOrDrawInResponse = evaluateMateOrDraw(board, opponentIsBareKing, -materialEval);
+                                if (mateOrDrawInResponse != null) {
+                                    responseScore = (long) (mateOrDrawInResponse);
+                                } else {
+                                    long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
+                                    long responseCheckBonus = board.IsInCheck() ? ENEMY_CHECK_BONUS : 0;
+                                    long responsePromotionBonus = response.IsPromotion
+                                        ? PIECE_VALUES[(int)response.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
+                                        : 0;
+                                    long bestResponseToResponseScore = long.MinValue;
+                                    foreach (var responseToResponse in getLegalMoves(board)) {
+                                        board.MakeMove(responseToResponse);
+                                        long responseToResponseScore;
+                                        if (!moveScoreZobrist.TryGetValue(board.ZobristKey + (UInt128)responseToResponse.RawValue << 64,
+                                                out responseToResponseScore)) {
+                                            responseToResponseScore = evaluateMateOrDraw(board, iAmABareKing, materialEval)
+                                                                      ??
+                                                                      evalCaptureBonus(board, responseToResponse, iAmWhite,
+                                                                          ENEMY_PIECE_VALUE_MULTIPLIER);
+                                        }
+                                        board.UndoMove(responseToResponse);
+                                        if ((long)responseToResponseScore >= 1_000_000_000_000) {
+                                            bestResponseToResponseScore = (long)responseToResponseScore;
+                                            break;
+                                        }
+                                        else if ((long)responseToResponseScore > bestResponseToResponseScore) {
+                                            bestResponseToResponseScore = (long)responseToResponseScore;
+                                        }
+                                    }
+                                    responseScore = responseCaptureBonus + responseCheckBonus + responsePromotionBonus -
+                                                    bestResponseToResponseScore;
+                                    Debug.WriteLine("Response {0} has score {1}", response, responseScore);
+                                    if (responseScore > bestResponseScore) {
+                                        bestResponseScore = responseScore;
+                                    }
+                                }
+                                board.UndoMove(response);
+                            }
+
+                            return minOpptMovesScore(responses) - bestResponseScore;
+                        });
+                        Debug.WriteLine("Score based on responses: {0}", score1);
+                        if (move.IsCapture) {
+                            var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
+                            Debug.WriteLine("Capture bonus: {0}", capture_bonus);
+                            score1 += capture_bonus;
+                        }
+
+                        if (iAmABareKing) {
+                            goto scoreFinishedExceptBaselining;
+                        }
+
+                        if (board.IsInCheck()) {
+                            Debug.WriteLine("Check bonus: {0}", CHECK_BONUS);
+                            score1 += CHECK_BONUS;
+                        }
+
+                        if (move.IsCastles) {
+                            Debug.WriteLine("Castling bonus: {0}", CASTLING_BONUS);
+                            score1 += CASTLING_BONUS;
+                            // Push/swarm logic won't handle castling well, so skip it
+                            goto scoreFinishedExceptBaselining;
+                        }
+
+                        if (board.PlyCount < 10 && (move.MovePieceType is PieceType.Bishop or PieceType.Rook or PieceType.Queen
+                                                    || move is { MovePieceType: PieceType.Knight, TargetSquare.Rank: 0 or 7 })
+                                                && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7) {
+                            Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
+                            score1 -= SAME_PIECE_OPENING_MOVE_PENALTY;
+                        }
+
+                        PieceType pushingPiece = move.MovePieceType;
+                        if (move.IsPromotion) {
+                            score1 += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
+                            pushingPiece = move.PromotionPieceType;
+                        }
+
+                        Square enemyKing = board.GetKingSquare(!iAmWhite);
+                        int enemyKingRank = enemyKing.Rank;
+                        int enemyKingFile = enemyKing.File;
+                        // Push/swarm adjustment
+                        int ranksBehindKingBefore = (move.StartSquare.Rank - enemyKingRank) * negateIfWhite;
+                        int ranksBehindKingAfter = (move.TargetSquare.Rank - enemyKingRank) * negateIfWhite;
+                        if (move.MovePieceType == PieceType.Pawn) {
+                            ranksBehindKingBefore = Math.Max(ranksBehindKingBefore, 0);
+                            ranksBehindKingAfter = Math.Max(ranksBehindKingAfter, 0);
+                        }
+
+                        int squaresFromKingBefore = Math.Min(Math.Abs(ranksBehindKingBefore),
+                            Math.Abs(move.StartSquare.File - enemyKingFile));
+                        int squaresFromKingAfter = Math.Min(Math.Abs(ranksBehindKingAfter),
+                            Math.Abs(move.TargetSquare.File - enemyKingFile));
+                        int swarmAdjustment = squaresFromKingBefore - squaresFromKingAfter;
+                        long[] myRankValues = iAmWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES;
+                        long rankPushAdjustment = myRankValues[move.TargetSquare.Rank] - myRankValues[move.StartSquare.Rank];
+                        long filePushAdjustment;
+                        bool behindUnmovedPawn;
+                        if (iAmWhite) {
+                            if (move.TargetSquare.Rank != 7) {
+                                behindUnmovedPawn = false;
+                            }
+                            else {
+                                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
+                                behindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
+                            }
+                        }
+                        else {
+                            if (move.TargetSquare.Rank != 0) {
+                                behindUnmovedPawn = false;
+                            }
+                            else {
+                                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
+                                behindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
+                            }
+                        }
+
+                        if (behindUnmovedPawn) {
+                            filePushAdjustment = 0; // No push adjustment applies on the back rank 
+                        }
+                        else {
+                            filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
+                                                 FILE_CENTER_DISTANCE_VALUES[move.TargetSquare.File];
+                        }
+
+                        Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
+                            filePushAdjustment);
+                        score1 += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
+                                  + PIECE_FILE_PUSH_VALUES[(int)pushingPiece] * filePushAdjustment
+                                  + PIECE_SWARM_VALUES[(int)pushingPiece] * swarmAdjustment;
+                        scoreFinishedExceptBaselining:
+                        Debug.WriteLine("Score before baselining and noise: {0}", score1);
+                        score1 += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
+                        // score -= baseline;
+                        return score1;
+                    });
                 if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
                     score += fiftyMoveResetValue;
                 }
@@ -107,7 +256,7 @@ public class Bot_1337 : IChessBot {
         return legalMovesZobrist.GetOrCreate(board.ZobristKey, () => board.GetLegalMoves())!;
     }
 
-    private static long getMaterialEval(Board board, bool iAmWhite) {
+    private static long evaluateMaterial(Board board, bool iAmWhite) {
         return materialEvalZobrist.GetOrCreate(board.ZobristKey, () => {
             if (isBareKing(board.WhitePiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: white is a bare king!");
@@ -134,164 +283,6 @@ public class Bot_1337 : IChessBot {
             Debug.WriteLine("Material eval: {0}", materialEval);
             return materialEval;
         }) * (iAmWhite ? -1 : 1);
-    }
-
-    public long evaluateMadeMove(Board board, bool iAmABareKing, bool opponentIsABareKing, long materialEval, Move move, bool iAmWhite,
-        int negateIfWhite) {
-        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
-        if (mateOrDraw != null) {
-            return (long)mateOrDraw;
-        }
-
-        Debug.WriteLine("Evaluating {0}", move);
-        long score = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
-            Move[] responses = getLegalMoves(board);
-            Debug.WriteLine("Responses: {0}", responses.Length);
-            long bestResponseScore = long.MinValue;
-            foreach (var response in responses) {
-                board.MakeMove(response);
-                ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-                long responseScore;
-                var mateOrDrawInResponse = evaluateMateOrDraw(board, opponentIsABareKing, -materialEval);
-                if (mateOrDrawInResponse != null) {
-                    responseScore = (long) (mateOrDrawInResponse);
-                } else {
-                    long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
-                    long responseCheckBonus = board.IsInCheck() ? ENEMY_CHECK_BONUS : 0;
-                    long responsePromotionBonus = response.IsPromotion
-                        ? PIECE_VALUES[(int)response.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
-                        : 0;
-                    long bestResponseToResponseScore = long.MinValue;
-                    foreach (var responseToResponse in getLegalMoves(board)) {
-                        board.MakeMove(responseToResponse);
-                        long responseToResponseScore;
-                        if (!moveScoreZobrist.TryGetValue(board.ZobristKey + (UInt128)responseToResponse.RawValue << 64,
-                                out responseToResponseScore)) {
-                            responseToResponseScore = evaluateMateOrDraw(board, iAmABareKing, materialEval)
-                                                      ??
-                                                      evalCaptureBonus(board, responseToResponse, iAmWhite,
-                                                          ENEMY_PIECE_VALUE_MULTIPLIER);
-                        }
-                        board.UndoMove(responseToResponse);
-                        if ((long)responseToResponseScore >= 1_000_000_000_000) {
-                            bestResponseToResponseScore = (long)responseToResponseScore;
-                            break;
-                        }
-                        else if ((long)responseToResponseScore > bestResponseToResponseScore) {
-                            bestResponseToResponseScore = (long)responseToResponseScore;
-                        }
-                    }
-                    responseScore = responseCaptureBonus + responseCheckBonus + responsePromotionBonus -
-                                    bestResponseToResponseScore;
-                    Debug.WriteLine("Response {0} has score {1}", response, responseScore);
-                    if (responseScore > bestResponseScore) {
-                        bestResponseScore = responseScore;
-                    }
-                }
-                board.UndoMove(response);
-            }
-
-            return minOpptMovesScore(responses) - bestResponseScore;
-        });
-        Debug.WriteLine("Score based on responses: {0}", score);
-        if (move.IsCapture) {
-            var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
-            Debug.WriteLine("Capture bonus: {0}", capture_bonus);
-            score += capture_bonus;
-        }
-
-        if (iAmABareKing) {
-            goto scoreFinishedExceptBaselining;
-        }
-
-        if (board.IsInCheck()) {
-            Debug.WriteLine("Check bonus: {0}", CHECK_BONUS);
-            score += CHECK_BONUS;
-        }
-
-        if (move.IsCastles) {
-            Debug.WriteLine("Castling bonus: {0}", CASTLING_BONUS);
-            score += CASTLING_BONUS;
-            // Push/swarm logic won't handle castling well, so skip it
-            goto scoreFinishedExceptBaselining;
-        }
-
-        if (board.PlyCount < 10 && (move.MovePieceType is PieceType.Bishop or PieceType.Rook or PieceType.Queen
-                                    || move is { MovePieceType: PieceType.Knight, TargetSquare.Rank: 0 or 7 })
-                                && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7) {
-            Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
-            score -= SAME_PIECE_OPENING_MOVE_PENALTY;
-        }
-
-        PieceType pushingPiece = move.MovePieceType;
-        if (move.IsPromotion) {
-            score += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
-            pushingPiece = move.PromotionPieceType;
-        }
-
-        /*
-        if (move.IsNull)
-        {
-            goto scoreFinishedExceptBaselining;
-        }
-        */
-        Square enemyKing = board.GetKingSquare(!iAmWhite);
-        int enemyKingRank = enemyKing.Rank;
-        int enemyKingFile = enemyKing.File;
-        // Push/swarm adjustment
-        int ranksBehindKingBefore = (move.StartSquare.Rank - enemyKingRank) * negateIfWhite;
-        int ranksBehindKingAfter = (move.TargetSquare.Rank - enemyKingRank) * negateIfWhite;
-        if (move.MovePieceType == PieceType.Pawn) {
-            ranksBehindKingBefore = Math.Max(ranksBehindKingBefore, 0);
-            ranksBehindKingAfter = Math.Max(ranksBehindKingAfter, 0);
-        }
-
-        int squaresFromKingBefore = Math.Min(Math.Abs(ranksBehindKingBefore),
-            Math.Abs(move.StartSquare.File - enemyKingFile));
-        int squaresFromKingAfter = Math.Min(Math.Abs(ranksBehindKingAfter),
-            Math.Abs(move.TargetSquare.File - enemyKingFile));
-        int swarmAdjustment = squaresFromKingBefore - squaresFromKingAfter;
-        long[] myRankValues = iAmWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES;
-        long rankPushAdjustment = myRankValues[move.TargetSquare.Rank] - myRankValues[move.StartSquare.Rank];
-        long filePushAdjustment;
-        bool behindUnmovedPawn;
-        if (iAmWhite) {
-            if (move.TargetSquare.Rank != 7) {
-                behindUnmovedPawn = false;
-            }
-            else {
-                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
-                behindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
-            }
-        }
-        else {
-            if (move.TargetSquare.Rank != 0) {
-                behindUnmovedPawn = false;
-            }
-            else {
-                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
-                behindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
-            }
-        }
-
-        if (behindUnmovedPawn) {
-            filePushAdjustment = 0; // No push adjustment applies on the back rank 
-        }
-        else {
-            filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
-                                 FILE_CENTER_DISTANCE_VALUES[move.TargetSquare.File];
-        }
-
-        Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
-            filePushAdjustment);
-        score += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
-                 + PIECE_FILE_PUSH_VALUES[(int)pushingPiece] * filePushAdjustment
-                 + PIECE_SWARM_VALUES[(int)pushingPiece] * swarmAdjustment;
-        scoreFinishedExceptBaselining:
-        Debug.WriteLine("Score before baselining and noise: {0}", score);
-        score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
-        // score -= baseline;
-        return score;
     }
 
     private static long minOpptMovesScore(Move[] responses) {
