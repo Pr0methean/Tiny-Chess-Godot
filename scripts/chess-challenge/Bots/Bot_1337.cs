@@ -121,12 +121,12 @@ public class Bot_1337 : IChessBot {
                                                                           ENEMY_PIECE_VALUE_MULTIPLIER);
                                         }
                                         board.UndoMove(responseToResponse);
-                                        if ((long)responseToResponseScore >= 1_000_000_000_000) {
-                                            bestResponseToResponseScore = (long)responseToResponseScore;
+                                        if (responseToResponseScore >= 1_000_000_000_000) {
+                                            bestResponseToResponseScore = responseToResponseScore;
                                             break;
                                         }
-                                        else if ((long)responseToResponseScore > bestResponseToResponseScore) {
-                                            bestResponseToResponseScore = (long)responseToResponseScore;
+                                        if (responseToResponseScore > bestResponseToResponseScore) {
+                                            bestResponseToResponseScore = responseToResponseScore;
                                         }
                                     }
 
@@ -134,6 +134,10 @@ public class Bot_1337 : IChessBot {
                                                     bestResponseToResponseScore;
                                 }
                                 Debug.WriteLine("Response {0} has score {1}", response, responseScore);
+                                if (responseScore >= 1_000_000_000_000) {
+                                    bestResponseScore = responseScore;
+                                    break;
+                                }
                                 if (responseScore > bestResponseScore) {
                                     bestResponseScore = responseScore;
                                 }
