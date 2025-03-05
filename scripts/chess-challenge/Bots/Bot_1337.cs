@@ -298,24 +298,24 @@ public class Bot_1337 : IChessBot {
     }
 
     private static long evalCaptureBonus(Board board, Move move, bool iAmWhite, long pieceValueMultiplier) {
-        long capture_bonus;
+        if (!move.IsCapture) {
+            return 0;
+        }
         ulong opponentBitboardAfterMove = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
         if (isBareKing(opponentBitboardAfterMove)) {
             Debug.WriteLine("This move will leave the opponent a bare king!");
-            capture_bonus = 600_000_000_000L;
+            return 600_000_000_000L;
         }
         else {
-            capture_bonus = PIECE_VALUES[(int)move.CapturePieceType];
+            long capture_bonus = PIECE_VALUES[(int)move.CapturePieceType];
             if (move.CapturePieceType == PieceType.Pawn) {
                 capture_bonus += iAmWhite
                     ? BLACK_PASSED_PAWN_VALUES[move.TargetSquare.Rank]
                     : WHITE_PASSED_PAWN_VALUES[move.TargetSquare.Rank];
             }
 
-            capture_bonus *= pieceValueMultiplier;
+            return capture_bonus * pieceValueMultiplier;
         }
-
-        return capture_bonus;
     }
 
     private long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval) {
