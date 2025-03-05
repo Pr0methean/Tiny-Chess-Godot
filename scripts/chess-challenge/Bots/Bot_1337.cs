@@ -199,33 +199,30 @@ public class Bot_1337 : IChessBot {
                         int swarmAdjustment = squaresFromKingBefore - squaresFromKingAfter;
                         long[] myRankValues = iAmWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES;
                         long rankPushAdjustment = myRankValues[move.TargetSquare.Rank] - myRankValues[move.StartSquare.Rank];
-                        long filePushAdjustment;
-                        bool behindUnmovedPawn;
-                        if (iAmWhite) {
-                            if (move.TargetSquare.Rank != 7) {
-                                behindUnmovedPawn = false;
-                            }
-                            else {
-                                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
-                                behindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
-                            }
-                        }
-                        else {
-                            if (move.TargetSquare.Rank != 0) {
-                                behindUnmovedPawn = false;
-                            }
-                            else {
-                                Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
-                                behindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
-                            }
-                        }
-
-                        if (behindUnmovedPawn) {
-                            filePushAdjustment = 0; // No push adjustment applies on the back rank 
-                        }
-                        else {
-                            filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
+                        long filePushAdjustment = FILE_CENTER_DISTANCE_VALUES[move.StartSquare.File] -
                                                  FILE_CENTER_DISTANCE_VALUES[move.TargetSquare.File];
+                        if (filePushAdjustment > 0) {
+                            bool targetBehindUnmovedPawn;
+                            if (iAmWhite) {
+                                if (move.TargetSquare.Rank != 0) {
+                                    targetBehindUnmovedPawn = false;
+                                }
+                                else {
+                                    Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 1));
+                                    targetBehindUnmovedPawn = inFront.IsPawn && inFront.IsWhite;
+                                }
+                            } else {
+                                if (move.TargetSquare.Rank != 7) {
+                                    targetBehindUnmovedPawn = false;
+                                }
+                                else {
+                                    Piece inFront = board.GetPiece(new Square(move.TargetSquare.File, 6));
+                                    targetBehindUnmovedPawn = inFront.IsPawn && !inFront.IsWhite;
+                                }
+                            }
+                            if (targetBehindUnmovedPawn) {
+                                filePushAdjustment = 0; // No push adjustment applies on the back rank 
+                            }
                         }
 
                         Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
