@@ -28,10 +28,12 @@ public class Bot_1337 : IChessBot {
     private static long[] WHITE_RANK_ADVANCEMENT_VALUES = { 0, 3, 6, 9, 11, 13, 14, 15 };
     private static long[] BLACK_RANK_ADVANCEMENT_VALUES = { 15, 14, 13, 11, 9, 6, 3, 0 };
     private static Random random = new();
-    private MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
+    private static MemoryCache materialEvalZobrist = new(new MemoryCacheOptions());
+    private static MemoryCache legalMovesZobrist = new(new MemoryCacheOptions());
+    public MemoryCache mateOrDrawZobrist = new(new MemoryCacheOptions());
     private MemoryCache moveScoreZobrist = new(new MemoryCacheOptions());
     private MemoryCache responseScoreZobrist = new(new MemoryCacheOptions());
-
+    
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
         if (board.PlyCount < 32) {
@@ -40,52 +42,12 @@ public class Bot_1337 : IChessBot {
                 return bookMove;
             }
         }
-
         // [Seb tweak end]
         bool iAmWhite = board.IsWhiteToMove;
         int negateIfWhite = iAmWhite ? -1 : 1;
         ulong myBitboard = iAmWhite ? board.WhitePiecesBitboard : board.BlackPiecesBitboard;
         bool iAmABareKing = isBareKing(myBitboard);
-        long materialEval = materialEvalZobrist.GetOrCreate(board.ZobristKey, _ => {
-            if (iAmABareKing) {
-                Debug.WriteLine("Skipping material evaluation: I'm a bare king!");
-                return -100_000_000_000L;
-            }
-            else {
-                ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-                bool opponentIsBareKing = isBareKing(opponentBitboard);
-                if (opponentIsBareKing) {
-                    Debug.WriteLine("Skipping material evaluation: Opponent is a bare king!");
-                    return 100_000_000_000L;
-                }
-            }
-
-            long materialEval = 0;
-            PieceList[] plist = board.GetAllPieceLists();
-            foreach (PieceList list in plist) {
-                bool isWhite = list.IsWhitePieceList;
-                if (isWhite) {
-                    materialEval -= (list.Count * PIECE_VALUES[(int)list.TypeOfPieceInList]);
-                    if (list.TypeOfPieceInList == PieceType.Pawn) {
-                        foreach (var piece in list) {
-                            materialEval -= WHITE_PASSED_PAWN_VALUES[piece.Square.Rank];
-                        }
-                    }
-                }
-                else {
-                    materialEval += (list.Count * PIECE_VALUES[(int)list.TypeOfPieceInList]);
-                    if (list.TypeOfPieceInList == PieceType.Pawn) {
-                        foreach (var piece in list) {
-                            materialEval += BLACK_PASSED_PAWN_VALUES[piece.Square.Rank];
-                        }
-                    }
-                }
-            }
-
-            materialEval *= negateIfWhite;
-            Debug.WriteLine("Material advantage: {0}", materialEval);
-            return materialEval;
-        });
+        long materialEval = getMaterialEval(board, iAmWhite);
         long fiftyMoveResetValue = 0;
         long fiftyMoveCounter = board.FiftyMoveCounter;
         if (materialEval > 0 && fiftyMoveCounter >= 60) {
@@ -96,7 +58,7 @@ public class Bot_1337 : IChessBot {
 
         board.MakeMove(Move.NullMove);
         // Prevents a bias against previously depth-1-evaluated moves when considering them as responses to responses
-        long minOpptMovesBaseline = minOpptMovesScore(board.GetLegalMoves());
+        long minOpptMovesBaseline = minOpptMovesScore(getLegalMoves(board));
         board.UndoMove(Move.NullMove);
         long bestScore = long.MinValue;
         /*
@@ -111,7 +73,7 @@ public class Bot_1337 : IChessBot {
         Debug.WriteLine("Null move has baseline score of {0}", 1baseline);
         */
         Move? bestMove = null;
-        Move[] moves = board.GetLegalMoves();
+        Move[] moves = getLegalMoves(board);
         foreach (Move move in moves) {
             board.MakeMove(move);
             long score = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, move),
@@ -139,6 +101,38 @@ public class Bot_1337 : IChessBot {
         return (Move)bestMove!;
     }
 
+    private static Move[] getLegalMoves(Board board) {
+        return legalMovesZobrist.GetOrCreate(board.ZobristKey, _ => board.GetLegalMoves())!;
+    }
+
+    private static long getMaterialEval(Board board, bool iAmWhite) {
+        return materialEvalZobrist.GetOrCreate(board.ZobristKey, _ => {
+            if (isBareKing(board.WhitePiecesBitboard)) {
+                Debug.WriteLine("Skipping material evaluation: white is a bare king!");
+                return -100_000_000_000L;
+            }
+
+            if (isBareKing(board.BlackPiecesBitboard)) {
+                Debug.WriteLine("Skipping material evaluation: black is a bare king!");
+                return 100_000_000_000L;
+            }
+            long materialEval = 0;
+            for (int i = 0; i < 64; i++) {
+                Square square = new Square(i);
+                Piece piece = board.GetPiece(square);
+                bool isWhite = piece.IsWhite;
+                materialEval += PIECE_VALUES[(int)piece.PieceType] * (isWhite ? -1 : 1);
+                if (piece.IsPawn) {
+                    materialEval += (isWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
+                        [square.Rank] * (isWhite ? -1 : 1);
+                }
+            }
+
+            Debug.WriteLine("Material eval: {0}", materialEval);
+            return materialEval;
+        })! * (iAmWhite ? -1 : 1);
+    }
+
     public long evaluateMadeMove(Board board, bool iAmABareKing, long materialEval, Move move, bool iAmWhite,
         int negateIfWhite) {
         var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, materialEval);
@@ -147,7 +141,7 @@ public class Bot_1337 : IChessBot {
         }
 
         Debug.WriteLine("Evaluating {0}", move);
-        Move[] responses = board.GetLegalMoves();
+        Move[] responses = getLegalMoves(board);
         Debug.WriteLine("Responses: {0}", responses.Length);
         long bestResponseScore = long.MinValue;
         foreach (var response in responses) {
@@ -163,7 +157,7 @@ public class Bot_1337 : IChessBot {
                 long responsePromotionBonus = response.IsPromotion ? 
                     PIECE_VALUES[(int)response.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER : 0;
                 long bestResponseToResponseScore = long.MinValue;
-                foreach(var responseToResponse in board.GetLegalMoves()) {
+                foreach(var responseToResponse in getLegalMoves(board)) {
                     board.MakeMove(responseToResponse);
                     long? responseToResponseScore =
                         (long?)moveScoreZobrist.Get(HashCode.Combine(board.ZobristKey, responseToResponse));
@@ -313,14 +307,23 @@ public class Bot_1337 : IChessBot {
         return capture_bonus;
     }
 
-    private static long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval) {
-        if (board.IsInCheckmate()) {
-            return 1_000_000_000_000L;
-        }
-        if (board.IsDraw()) {
-            return evaluateDraw(iAmABareKing, materialEval);
-        }
-        return null;
+    private long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval) {
+        return mateOrDrawZobrist.GetOrCreate<long?>(board.ZobristKey, _ => {
+            if (getLegalMoves(board).Length == 0) {
+                if (board.IsInCheck()) {
+                    // Checkmate
+                    return 1_000_000_000_000L;
+                }
+                // Stalemate
+                return evaluateDraw(iAmABareKing, materialEval);
+            }
+
+            if (board.IsFiftyMoveDraw() || board.IsInsufficientMaterial() || board.IsRepeatedPosition()) {
+                return evaluateDraw(iAmABareKing, materialEval);
+            }
+
+            return null;
+        });
     }
 
     private static long evaluateDraw(bool iAmABareKing, long materialEval) {
