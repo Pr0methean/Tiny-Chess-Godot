@@ -105,7 +105,7 @@ public class Bot_1337 : IChessBot {
                                 board.MakeMove(response);
                                 var boardStateAfterResponse = getCacheableState(board);
                                 long responseScore;
-                                var mateOrDrawInResponse = boardState.mateOrDrawEval;
+                                var mateOrDrawInResponse = boardStateAfterResponse.mateOrDrawEval;
                                 if (mateOrDrawInResponse != null) {
                                     responseScore = (long) (mateOrDrawInResponse);
                                 } else {
@@ -246,7 +246,6 @@ public class Bot_1337 : IChessBot {
                 }
                 score += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
             }
-
             board.UndoMove(move);
             Debug.WriteLine("Move {0} has score {1}", move, score);
             if (score >= 1_000_000_000_000) {
