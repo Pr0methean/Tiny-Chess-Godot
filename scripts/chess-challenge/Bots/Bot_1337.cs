@@ -123,8 +123,26 @@ public class Bot_1337 : IChessBot {
                                             var boardStateAfterResponseToResponse = getCacheableState(board);
                                             responseToResponseScore = boardStateAfterResponseToResponse.mateOrDrawEval
                                                                       ??
-                                                                      evalCaptureBonus(board, responseToResponse, iAmWhite,
-                                                                          ENEMY_PIECE_VALUE_MULTIPLIER);
+                                                                      evalCaptureBonus(board, responseToResponse,
+                                                                          iAmWhite,
+                                                                          ENEMY_PIECE_VALUE_MULTIPLIER) -
+                                                                          boardStateAfterResponseToResponse.legalMoves
+                                                                              .Max(
+                                                                                  responseToResponseToResponse => {
+                                                                                      board.MakeMove(
+                                                                                          responseToResponseToResponse);
+                                                                                      long
+                                                                                          responseToResponseToResponseScore =
+                                                                                              0;
+                                                                                      responseScoreZobrist.TryGetValue(
+                                                                                          board.ZobristKey,
+                                                                                          out
+                                                                                          responseToResponseToResponseScore);
+                                                                                      board.UndoMove(
+                                                                                          responseToResponseToResponse);
+                                                                                      return
+                                                                                          responseToResponseToResponseScore;
+                                                                                  });
                                         }
                                         board.UndoMove(responseToResponse);
                                         if (responseToResponseScore >= 1_000_000_000_000) {
