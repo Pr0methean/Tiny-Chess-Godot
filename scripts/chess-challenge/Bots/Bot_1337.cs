@@ -119,10 +119,18 @@ public class Bot_1337 : IChessBot {
                                         if (!moveScoreZobrist.TryGetValue(board.ZobristKey | (UInt128)responseToResponse.RawValue << 64,
                                                 out responseToResponseScore)) {
                                             var boardStateAfterResponseToResponse = getCacheableState(board);
-                                            responseToResponseScore = boardStateAfterResponseToResponse.mateOrDrawEval
-                                                                      ??
-                                                                      evalCaptureBonus(board, responseToResponse, iAmWhite,
-                                                                          ENEMY_PIECE_VALUE_MULTIPLIER);
+                                            if (boardStateAfterResponseToResponse.mateOrDrawEval != null) {
+                                                responseToResponseScore =
+                                                    (long) boardStateAfterResponseToResponse.mateOrDrawEval;
+                                            }
+                                            else {
+                                                responseToResponseScore = evalCaptureBonus(board, responseToResponse, iAmWhite,
+                                                    ENEMY_PIECE_VALUE_MULTIPLIER);
+                                                long bestResponseToResponseToResponse;
+                                                if (responseScoreZobrist.TryGetValue(board.ZobristKey, out bestResponseToResponseToResponse)) {
+                                                    responseToResponseScore -= bestResponseToResponseToResponse;
+                                                }
+                                            }
                                         }
                                         board.UndoMove(responseToResponse);
                                         if (responseToResponseScore >= 1_000_000_000_000) {
