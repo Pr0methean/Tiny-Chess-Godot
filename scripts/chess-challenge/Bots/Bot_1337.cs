@@ -61,10 +61,7 @@ public class Bot_1337 : IChessBot {
             Debug.WriteLine("Fifty-move reset value: {0}", fiftyMoveResetValue);
         }
 
-        board.MakeMove(Move.NullMove);
-        // Prevents a bias against previously depth-1-evaluated moves when considering them as responses to responses
-        long minOpptMovesBaseline = minOpptMovesScore(getLegalMoves(board));
-        board.UndoMove(Move.NullMove);
+        var minOpptMovesBaseline = getMinOpptMovesBaseline(board);
         long bestScore = long.MinValue;
         /*
         board.MakeMove(Move.NullMove);
@@ -96,7 +93,7 @@ public class Bot_1337 : IChessBot {
                         }
 
                         Debug.WriteLine("Evaluating {0}", move);
-                        long score = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
+                        long bestResponseScoreRelBaseline = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
                             Debug.WriteLine("Responses: {0}", boardStateAfterMove.legalMoves.Length);
                             long bestResponseScore = long.MinValue;
                             foreach (var response in boardStateAfterMove.legalMoves) {
@@ -118,6 +115,7 @@ public class Bot_1337 : IChessBot {
                                         long responseToResponseScore;
                                         if (!moveScoreZobrist.TryGetValue(board.ZobristKey | (UInt128)responseToResponse.RawValue << 64,
                                                 out responseToResponseScore)) {
+                                            var responseToResponseMinOpptMovesBaseline = getMinOpptMovesBaseline(board);
                                             var boardStateAfterResponseToResponse = getCacheableState(board);
                                             if (boardStateAfterResponseToResponse.mateOrDrawEval != null) {
                                                 responseToResponseScore =
@@ -128,7 +126,7 @@ public class Bot_1337 : IChessBot {
                                                     ENEMY_PIECE_VALUE_MULTIPLIER);
                                                 long bestResponseToResponseToResponse;
                                                 if (responseScoreZobrist.TryGetValue(board.ZobristKey, out bestResponseToResponseToResponse)) {
-                                                    responseToResponseScore -= bestResponseToResponseToResponse;
+                                                    responseToResponseScore -= bestResponseToResponseToResponse - responseToResponseMinOpptMovesBaseline;
                                                 }
                                             }
                                         }
@@ -157,11 +155,11 @@ public class Bot_1337 : IChessBot {
                             }
                             return minOpptMovesScore(boardStateAfterMove.legalMoves) - bestResponseScore;
                         }) - minOpptMovesBaseline;
-                        Debug.WriteLine("Score based on responses: {0}", score);
+                        Debug.WriteLine("Score based on responses: {0}", bestResponseScoreRelBaseline);
                         if (move.IsCapture) {
                             var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
                             Debug.WriteLine("Capture bonus: {0}", capture_bonus);
-                            score += capture_bonus;
+                            bestResponseScoreRelBaseline += capture_bonus;
                         }
 
                         if (iAmABareKing) {
@@ -170,12 +168,12 @@ public class Bot_1337 : IChessBot {
 
                         if (board.IsInCheck()) {
                             Debug.WriteLine("Check bonus: {0}", CHECK_BONUS);
-                            score += CHECK_BONUS;
+                            bestResponseScoreRelBaseline += CHECK_BONUS;
                         }
 
                         if (move.IsCastles) {
                             Debug.WriteLine("Castling bonus: {0}", CASTLING_BONUS);
-                            score += CASTLING_BONUS;
+                            bestResponseScoreRelBaseline += CASTLING_BONUS;
                             // Push/swarm logic won't handle castling well, so skip it
                             goto scoreFinishedExceptNoise;
                         }
@@ -184,12 +182,12 @@ public class Bot_1337 : IChessBot {
                                                     || move is { MovePieceType: PieceType.Knight, TargetSquare.Rank: 0 or 7 })
                                                 && move.StartSquare.Rank != 0 && move.StartSquare.Rank != 7) {
                             Debug.WriteLine("Same piece opening move penalty: {0}", SAME_PIECE_OPENING_MOVE_PENALTY);
-                            score -= SAME_PIECE_OPENING_MOVE_PENALTY;
+                            bestResponseScoreRelBaseline -= SAME_PIECE_OPENING_MOVE_PENALTY;
                         }
 
                         PieceType pushingPiece = move.MovePieceType;
                         if (move.IsPromotion) {
-                            score += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
+                            bestResponseScoreRelBaseline += MY_PIECE_VALUE_MULTIPLIER * PIECE_VALUES[(int)move.PromotionPieceType];
                             pushingPiece = move.PromotionPieceType;
                         }
 
@@ -239,13 +237,13 @@ public class Bot_1337 : IChessBot {
 
                         Debug.WriteLine("Swarm: {0}, Rank Push: {1}, File Push: {2}", swarmAdjustment, rankPushAdjustment,
                             filePushAdjustment);
-                        score += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
+                        bestResponseScoreRelBaseline += PIECE_RANK_PUSH_VALUES[(int)pushingPiece] * rankPushAdjustment
                                   + PIECE_FILE_PUSH_VALUES[(int)pushingPiece] * filePushAdjustment
                                   + PIECE_SWARM_VALUES[(int)pushingPiece] * swarmAdjustment;
                         scoreFinishedExceptNoise:
-                        Debug.WriteLine("Score before baselining and noise: {0}", score);
+                        Debug.WriteLine("Score before baselining and noise: {0}", bestResponseScoreRelBaseline);
                         // score -= baseline;
-                        return score;
+                        return bestResponseScoreRelBaseline;
                     });
                 if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
                     score += fiftyMoveResetValue;
@@ -264,6 +262,14 @@ public class Bot_1337 : IChessBot {
         }
 
         return (Move)bestMove!;
+    }
+
+    private long getMinOpptMovesBaseline(Board board) {
+        board.MakeMove(Move.NullMove);
+        // Prevents a bias against previously depth-1-evaluated moves when considering them as responses to responses
+        long minOpptMovesBaseline = minOpptMovesScore(getLegalMoves(board));
+        board.UndoMove(Move.NullMove);
+        return minOpptMovesBaseline;
     }
 
     private Move[] getLegalMoves(Board board) {
