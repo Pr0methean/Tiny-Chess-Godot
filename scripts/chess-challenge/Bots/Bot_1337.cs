@@ -52,8 +52,6 @@ public class Bot_1337 : IChessBot {
         int negateIfWhite = iAmWhite ? -1 : 1;
         ulong myBitboard = iAmWhite ? board.WhitePiecesBitboard : board.BlackPiecesBitboard;
         bool iAmABareKing = isBareKing(myBitboard);
-        ulong opponentBitboard = iAmWhite ? board.BlackPiecesBitboard : board.WhitePiecesBitboard;
-        bool opponentIsBareKing = isBareKing(opponentBitboard);
         CacheableBoardState boardState = getCacheableState(board);
         long fiftyMoveResetValue = 0;
         long fiftyMoveCounter = board.FiftyMoveCounter;
