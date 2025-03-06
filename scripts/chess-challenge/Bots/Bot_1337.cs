@@ -93,7 +93,7 @@ public class Bot_1337 : IChessBot {
                         }
 
                         Debug.WriteLine("Evaluating {0}", move);
-                        long bestResponseScoreRelBaseline = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
+                        long bestResponseScoreRelBaseline = -responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
                             Debug.WriteLine("Responses: {0}", boardStateAfterMove.legalMoves.Length);
                             long bestResponseScore = long.MinValue;
                             foreach (var response in boardStateAfterMove.legalMoves) {
@@ -152,7 +152,7 @@ public class Bot_1337 : IChessBot {
                                     bestResponseScore = responseScore;
                                 }
                             }
-                            return -bestResponseScore;
+                            return bestResponseScore;
                         }) + minOpptMovesScore(boardStateAfterMove.legalMoves) - minOpptMovesBaseline;
                         Debug.WriteLine("Score based on responses: {0}", bestResponseScoreRelBaseline);
                         if (move.IsCapture) {
