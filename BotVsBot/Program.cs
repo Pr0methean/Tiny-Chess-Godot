@@ -21,9 +21,8 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-    if (!white.mateOrDrawZobrist.TryGetValue(board.ZobristKey, out mateOrDraw)) {
-        black.mateOrDrawZobrist.TryGetValue(board.ZobristKey, out mateOrDraw);
-    }
+    mateOrDraw = white.getCacheableState(apiBoard).mateOrDrawEval
+        ?? black.getCacheableState(apiBoard).mateOrDrawEval;
 } while (mateOrDraw == null);
 Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));
 Console.WriteLine(Arbiter.GetGameState(board));
