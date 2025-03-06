@@ -89,22 +89,23 @@ public class Bot_1337 : IChessBot {
             if (board.IsRepeatedPosition() || board.IsFiftyMoveDraw()) {
                 score = evaluateDraw(iAmABareKing, boardState.materialEval);
             } else {
+                CacheableBoardState boardStateAfterMove = getCacheableState(board);
                 score = moveScoreZobrist.GetOrCreate(board.ZobristKey | (UInt128)move.RawValue << 64,
                     () => {
-                        var mateOrDraw = evaluateMateOrDraw(board, iAmABareKing, boardState.materialEval);
+                        var mateOrDraw = boardStateAfterMove.mateOrDrawEval;
                         if (mateOrDraw != null) {
                             return (long)mateOrDraw;
                         }
 
                         Debug.WriteLine("Evaluating {0}", move);
                         long score = responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
-                            Move[] responses = getLegalMoves(board);
-                            Debug.WriteLine("Responses: {0}", responses.Length);
+                            Debug.WriteLine("Responses: {0}", boardStateAfterMove.legalMoves.Length);
                             long bestResponseScore = long.MinValue;
-                            foreach (var response in responses) {
+                            foreach (var response in boardStateAfterMove.legalMoves) {
                                 board.MakeMove(response);
+                                var boardStateAfterResponse = getCacheableState(board);
                                 long responseScore;
-                                var mateOrDrawInResponse = evaluateMateOrDraw(board, opponentIsBareKing, -boardState.materialEval);
+                                var mateOrDrawInResponse = boardState.mateOrDrawEval;
                                 if (mateOrDrawInResponse != null) {
                                     responseScore = (long) (mateOrDrawInResponse);
                                 } else {
@@ -114,12 +115,13 @@ public class Bot_1337 : IChessBot {
                                         ? PIECE_VALUES[(int)response.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
                                         : 0;
                                     long bestResponseToResponseScore = long.MinValue;
-                                    foreach (var responseToResponse in getLegalMoves(board)) {
+                                    foreach (var responseToResponse in boardStateAfterResponse.legalMoves) {
                                         board.MakeMove(responseToResponse);
                                         long responseToResponseScore;
                                         if (!moveScoreZobrist.TryGetValue(board.ZobristKey | (UInt128)responseToResponse.RawValue << 64,
                                                 out responseToResponseScore)) {
-                                            responseToResponseScore = evaluateMateOrDraw(board, iAmABareKing, boardState.materialEval)
+                                            var boardStateAfterResponseToResponse = getCacheableState(board);
+                                            responseToResponseScore = boardStateAfterResponseToResponse.mateOrDrawEval
                                                                       ??
                                                                       evalCaptureBonus(board, responseToResponse, iAmWhite,
                                                                           ENEMY_PIECE_VALUE_MULTIPLIER);
@@ -147,7 +149,7 @@ public class Bot_1337 : IChessBot {
                                     bestResponseScore = responseScore;
                                 }
                             }
-                            return minOpptMovesScore(responses) - bestResponseScore;
+                            return minOpptMovesScore(boardStateAfterMove.legalMoves) - bestResponseScore;
                         }) - minOpptMovesBaseline;
                         Debug.WriteLine("Score based on responses: {0}", score);
                         if (move.IsCapture) {
