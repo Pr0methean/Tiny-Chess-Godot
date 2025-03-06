@@ -335,7 +335,7 @@ public class Bot_1337 : IChessBot {
             }
             else {
                 if (board.IsInsufficientMaterial()) {
-                    mateOrDrawEval = evaluateDraw(materialEval);
+                    mateOrDrawEval = 0;
                 } else {
                     mateOrDrawEval = null;
                 }
