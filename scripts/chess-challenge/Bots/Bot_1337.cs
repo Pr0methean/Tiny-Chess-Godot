@@ -75,8 +75,7 @@ public class Bot_1337 : IChessBot {
         Debug.WriteLine("Null move has baseline score of {0}", baseline);
         */
         Move? bestMove = null;
-        Move[] moves = getLegalMoves(board);
-        foreach (Move move in moves) {
+        foreach (Move move in boardState.legalMoves) {
             board.MakeMove(move);
             // Repeated positions don't factor into the Zobrist hash, but the API treats them as draws (even if they've
             // only occurred once before)
@@ -266,13 +265,9 @@ public class Bot_1337 : IChessBot {
     private long getMinOpptMovesBaseline(Board board) {
         board.MakeMove(Move.NullMove);
         // Prevents a bias against previously depth-1-evaluated moves when considering them as responses to responses
-        long minOpptMovesBaseline = minOpptMovesScore(getLegalMoves(board));
+        long minOpptMovesBaseline = minOpptMovesScore(getCacheableState(board).legalMoves);
         board.UndoMove(Move.NullMove);
         return minOpptMovesBaseline;
-    }
-
-    private Move[] getLegalMoves(Board board) {
-        return getCacheableState(board).legalMoves;
     }
 
     private static long minOpptMovesScore(Move[] responses) {
