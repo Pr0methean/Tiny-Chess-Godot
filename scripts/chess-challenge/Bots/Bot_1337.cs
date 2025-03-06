@@ -115,7 +115,6 @@ public class Bot_1337 : IChessBot {
                                         long responseToResponseScore;
                                         if (!moveScoreZobrist.TryGetValue(board.ZobristKey | (UInt128)responseToResponse.RawValue << 64,
                                                 out responseToResponseScore)) {
-                                            var responseToResponseMinOpptMovesBaseline = getMinOpptMovesBaseline(board);
                                             var boardStateAfterResponseToResponse = getCacheableState(board);
                                             if (boardStateAfterResponseToResponse.mateOrDrawEval != null) {
                                                 responseToResponseScore =
@@ -126,9 +125,7 @@ public class Bot_1337 : IChessBot {
                                                     ENEMY_PIECE_VALUE_MULTIPLIER);
                                                 long bestResponseToResponseToResponse;
                                                 if (responseScoreZobrist.TryGetValue(board.ZobristKey, out bestResponseToResponseToResponse)) {
-                                                    responseToResponseScore += minOpptMovesScore(boardStateAfterResponseToResponse.legalMoves) 
-                                                        - responseToResponseMinOpptMovesBaseline
-                                                        - bestResponseToResponseToResponse;
+                                                    responseToResponseScore -= bestResponseToResponseToResponse;
                                                 }
                                             }
                                         }
