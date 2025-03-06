@@ -152,8 +152,8 @@ public class Bot_1337 : IChessBot {
                                     bestResponseScore = responseScore;
                                 }
                             }
-                            return minOpptMovesScore(boardStateAfterMove.legalMoves) - bestResponseScore;
-                        }) - minOpptMovesBaseline;
+                            return -bestResponseScore;
+                        }) + minOpptMovesScore(boardStateAfterMove.legalMoves) - minOpptMovesBaseline;
                         Debug.WriteLine("Score based on responses: {0}", bestResponseScoreRelBaseline);
                         if (move.IsCapture) {
                             var capture_bonus = evalCaptureBonus(board, move, iAmWhite, ENEMY_PIECE_VALUE_MULTIPLIER);
