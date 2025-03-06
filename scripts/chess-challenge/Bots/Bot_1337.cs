@@ -126,7 +126,7 @@ public class Bot_1337 : IChessBot {
                                                     ENEMY_PIECE_VALUE_MULTIPLIER);
                                                 long bestResponseToResponseToResponse;
                                                 if (responseScoreZobrist.TryGetValue(board.ZobristKey, out bestResponseToResponseToResponse)) {
-                                                    responseToResponseScore += minOpptMovesScore(boardStateAfterResponseToResponse) 
+                                                    responseToResponseScore += minOpptMovesScore(boardStateAfterResponseToResponse.legalMoves) 
                                                         - responseToResponseMinOpptMovesBaseline
                                                         - bestResponseToResponseToResponse;
                                                 }
