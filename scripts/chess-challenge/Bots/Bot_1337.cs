@@ -319,30 +319,32 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private long? evaluateMateOrDraw(Board board, bool iAmABareKing, long materialEval) {
-        if (getLegalMoves(board).Length == 0) {
-            if (board.IsInCheck()) {
-                // Checkmate
-                return 1_000_000_000_000L;
-            }
-
-            // Stalemate
-            return evaluateDraw(iAmABareKing, materialEval);
-        }
-
-        if (board.IsInsufficientMaterial()) {
-            return evaluateDraw(iAmABareKing, materialEval);
-        }
-
-        return null;
-    }
-
     public CacheableBoardState getCacheableState(Board board) {
         return cacheableBoardStateZobrist.GetOrCreate(board.ZobristKey, () => {
             long materialEval = evaluateMaterial(board, board.IsWhiteToMove);
-            long? mateOrDrawEval = evaluateMateOrDraw(board,
-                isBareKing(board.IsWhiteToMove ? board.WhitePiecesBitboard : board.BlackPiecesBitboard), materialEval);
             Move[] legalMoves = board.GetLegalMoves();
+            bool iAmABareKing = isBareKing(board.IsWhiteToMove ? board.WhitePiecesBitboard : board.BlackPiecesBitboard);
+            long? mateOrDrawEval;
+            if (legalMoves.Length == 0) {
+                if (board.IsInCheck()) {
+                    // Checkmate
+                    mateOrDrawEval = 1_000_000_000_000L;
+                }
+                else {
+                    mateOrDrawEval = evaluateDraw(iAmABareKing, materialEval);
+                }
+
+                // Stalemate
+            }
+            else {
+                if (board.IsInsufficientMaterial()) {
+                    mateOrDrawEval = evaluateDraw(iAmABareKing, materialEval);
+                }
+                else {
+                    mateOrDrawEval = null;
+                }
+            }
+
             return new CacheableBoardState {
                 legalMoves = legalMoves,
                 mateOrDrawEval = mateOrDrawEval,
