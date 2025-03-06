@@ -63,17 +63,6 @@ public class Bot_1337 : IChessBot {
 
         var minOpptMovesBaseline = getMinOpptMovesBaseline(board);
         long bestScore = long.MinValue;
-        /*
-        board.MakeMove(Move.NullMove);
-        long baseline = mo*veScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, Move.NullMove),
-            () => evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0));
-
-        // Sanity checks
-        baseline = Math.Max(Math.Min(baseline, 1_000_000_000), -1_000_000_000);
-
-        board.UndoMove(Move.NullMove);
-        Debug.WriteLine("Null move has baseline score of {0}", baseline);
-        */
         Move? bestMove = null;
         foreach (Move move in boardState.legalMoves) {
             board.MakeMove(move);
@@ -124,7 +113,9 @@ public class Bot_1337 : IChessBot {
                                                     ENEMY_PIECE_VALUE_MULTIPLIER);
                                                 long bestResponseToResponseToResponse;
                                                 if (responseScoreZobrist.TryGetValue(board.ZobristKey, out bestResponseToResponseToResponse)) {
-                                                    responseToResponseScore -= bestResponseToResponseToResponse;
+                                                    if (bestResponseToResponseToResponse > 0) {
+                                                        responseToResponseScore -= bestResponseToResponseToResponse;
+                                                    }
                                                 }
                                             }
                                         }
