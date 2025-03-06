@@ -329,10 +329,9 @@ public class Bot_1337 : IChessBot {
                     mateOrDrawEval = 1_000_000_000_000L;
                 }
                 else {
+                    // Stalemate
                     mateOrDrawEval = evaluateDraw(materialEval);
                 }
-
-                // Stalemate
             }
             else {
                 if (board.IsInsufficientMaterial()) {
