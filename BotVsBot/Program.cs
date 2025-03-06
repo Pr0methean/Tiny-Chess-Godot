@@ -22,7 +22,7 @@ do {
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
     mateOrDraw = white.getCacheableState(apiBoard).mateOrDrawEval
-        ?? black.getCacheableState(apiBoard).mateOrDrawEval;
-} while (mateOrDraw == null);
+                 ?? black.getCacheableState(apiBoard).mateOrDrawEval;
+} while (mateOrDraw == null && Arbiter.GetGameState(board) == GameResult.InProgress);
 Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));
 Console.WriteLine(Arbiter.GetGameState(board));

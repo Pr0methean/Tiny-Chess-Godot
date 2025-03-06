@@ -11,7 +11,7 @@ public class Bot_1337 : IChessBot {
     private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private const long PENALTY_PER_ENEMY_MOVE = 1_000_000;
     private const long MIN_DRAW_VALUE_WHEN_BEHIND = 0;
-    private const long MAX_DRAW_VALUE_WHEN_BEHIND = 500_000_000;
+    private const long MAX_DRAW_VALUE_WHEN_BEHIND = 900_000_000;
     private const long MAX_MOVE_VALUE_NOISE = 1_000;
     private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long ENEMY_CHECK_BONUS = 1_000_000_000;
@@ -70,7 +70,7 @@ public class Bot_1337 : IChessBot {
         long bestScore = long.MinValue;
         /*
         board.MakeMove(Move.NullMove);
-        long baseline = moveScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, Move.NullMove),
+        long baseline = mo*veScoreZobrist.GetOrCreate(HashCode.Combine(board.ZobristKey, Move.NullMove),
             () => evaluateMadeMove(board, iAmABareKing, materialEval, Move.NullMove, iAmWhite, negateIfWhite, 0));
 
         // Sanity checks
