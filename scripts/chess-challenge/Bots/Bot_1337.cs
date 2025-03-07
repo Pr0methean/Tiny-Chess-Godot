@@ -184,11 +184,11 @@ public class Bot_1337 : IChessBot {
         evaluation += CalculateSwarmAndPushBonus(board);
 
         // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
-        evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length;
+        evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (board.TrySkipTurn()) {
             Span<Move> opponentLegalMoves = stackalloc Move[128];
             board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
-            evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length;
+            evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
             board.UndoSkipTurn();
         }
 
