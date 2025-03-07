@@ -13,7 +13,6 @@ board.LoadStartPosition();
 bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
-long? mateOrDraw;
 do {
     IChessBot botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
@@ -21,6 +20,6 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-} while (!Bot_1337.endgamePositions.Contains(board.ZobristKey) || Arbiter.GetGameState(board) == GameResult.InProgress);
+} while (Arbiter.GetGameState(board) == GameResult.InProgress);
 Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));
 Console.WriteLine(Arbiter.GetGameState(board));

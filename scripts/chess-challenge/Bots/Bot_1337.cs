@@ -41,7 +41,6 @@ public class Bot_1337 : IChessBot {
     private static Dictionary<ulong, long> basicEvalCache = new();
     // Option 2: Using LINQ (more concise but perhaps less readable)
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
-    public static HashSet<ulong> endgamePositions = new(); // FIXME: Replace with Bloom filter?
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -85,7 +84,6 @@ public class Bot_1337 : IChessBot {
         long score;
         var legalMoves = board.GetLegalMoves();
         if (legalMoves.Length == 0) {
-            endgamePositions.Add(key);
             if (board.IsInCheck()) {
                 // Checkmate
                 score = maximizingPlayer ? -INFINITY : INFINITY;
@@ -93,8 +91,7 @@ public class Bot_1337 : IChessBot {
                 // Stalemate
                 score = evaluateDraw(EvaluateBasicPosition(board));
             }
-        } else if (board.IsRepeatedPosition() || board.IsInsufficientMaterial()) {
-            endgamePositions.Add(key);
+        } else if (board.IsInsufficientMaterial() || board.IsRepeatedPosition() || board.IsFiftyMoveDraw()) {
             score = evaluateDraw(EvaluateBasicPosition(board));
         } else if (depth == 0) {
             score = EvaluatePosition(board);
