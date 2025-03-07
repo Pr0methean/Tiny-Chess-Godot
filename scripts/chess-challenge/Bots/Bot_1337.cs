@@ -76,7 +76,6 @@ public class Bot_1337 : IChessBot {
             board.MakeMove(move);
             long value = -AlphaBeta(board, MAX_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
-            value += noise();
             
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
@@ -168,10 +167,6 @@ public class Bot_1337 : IChessBot {
             score, depth, nodeType
         );
         return score;
-    }
-
-    private static long noise() {
-        return random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
     }
 
     // Positive favors white
