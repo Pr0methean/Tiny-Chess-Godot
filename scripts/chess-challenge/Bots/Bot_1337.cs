@@ -67,8 +67,8 @@ public class Bot_1337 : IChessBot {
         // [Seb tweak end]
         Move bestMove = Move.NullMove;
         long bestValue = long.MinValue;
-        
-        var legalMoves = board.GetLegalMoves();
+        var legalMoves = new Span<Move>(new Move[128]);
+        board.GetLegalMovesNonAlloc(ref legalMoves);
         
         foreach (var move in legalMoves) {
             board.MakeMove(move);
@@ -103,8 +103,9 @@ public class Bot_1337 : IChessBot {
             mateOrDrawCache[key] = score;
             goto cacheStore;
         }
-        
-        var legalMoves = board.GetLegalMoves();
+
+        var legalMoves = new Span<Move>(new Move[128]);
+        board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
             if (board.IsInCheck()) {
                 // Checkmate
@@ -177,6 +178,8 @@ public class Bot_1337 : IChessBot {
         bool isWhite = board.IsWhiteToMove;
         evaluation *= (isWhite ? 1 : -1);
 
+        var legalMoves = new Span<Move>(new Move[128]);
+        board.GetLegalMovesNonAlloc(ref legalMoves);
         // Check penalty
         if (board.IsInCheck()) {
             evaluation -= CHECK_PENALTY;
@@ -194,7 +197,7 @@ public class Bot_1337 : IChessBot {
         evaluation += CalculatePushBonus(board, isWhite);
 
         // MinOpptMove heuristic - evaluate opponent's best response
-        evaluation += minOpptMovesScore(board.GetLegalMoves());
+        evaluation += minOpptMovesScore(legalMoves);
 
         return evaluation;
     }
@@ -288,10 +291,14 @@ public class Bot_1337 : IChessBot {
         return bonus;
     }
 
-    private static long minOpptMovesScore(Move[] responses) {
-        return -responses.Sum(m =>
-            PENALTY_PER_ENEMY_MOVE
-            + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER);
+    private static long minOpptMovesScore(Span<Move> responses) {
+        long minOpptMovesScore = 0;
+        foreach (var move in responses) {
+            minOpptMovesScore -= PENALTY_PER_ENEMY_MOVE
+                                 + PIECE_VALUES[(int)move.CapturePieceType] *
+                                 MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER;
+        }
+        return minOpptMovesScore;
     }
     
     private static long evaluateDraw(long materialEval) {
