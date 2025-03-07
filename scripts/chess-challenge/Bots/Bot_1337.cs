@@ -9,7 +9,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = 14 | (16 << 4);
+    public static int MAX_MONOTONIC_KEY = 14 + 16 * 15;
     private const byte QUIET_DEPTH = 2;
     private const long INFINITY = 1_000_000_000_000;
 
@@ -110,7 +110,7 @@ public class Bot_1337 : IChessBot {
         ulong pawnsBitboard = board.GetPieceBitboard(PieceType.Pawn, true) | board.GetPieceBitboard(PieceType.Pawn, false);
         int numPawns = BitOperations.PopCount(pawnsBitboard);
         int numPiecesPromotableTo = BitOperations.PopCount(board.AllPiecesBitboard) - numPawns - 2;
-        return numPiecesPromotableTo | (numPawns << 4);
+        return numPiecesPromotableTo + numPawns * 15;
     }
 
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
