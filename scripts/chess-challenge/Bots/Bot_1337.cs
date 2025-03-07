@@ -185,11 +185,6 @@ public class Bot_1337 : IChessBot {
             evaluation -= CHECK_PENALTY;
         }
         
-        // Castling bonus
-        if (board.GameMoveHistory.Last().IsCastles) {
-            evaluation -= CASTLING_BONUS;
-        }
-        
         // Swarm heuristic - bonus for pieces near enemy king
         evaluation += CalculateSwarmBonus(board, isWhite);
 
