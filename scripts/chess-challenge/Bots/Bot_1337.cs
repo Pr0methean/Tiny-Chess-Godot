@@ -18,9 +18,9 @@ public class Bot_1337 : IChessBot {
     private const long MAX_MOVE_VALUE_NOISE = 10_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 1_000_000_000;
+    private const long 
     // private const long CHECK_BONUS = 1_000_000;
     // private const long CASTLING_BONUS = 2_000_000;
-    private const long CASTLING_BONUS = 5_000_000;
     private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
     private static readonly long[] PIECE_RANK_PUSH_VALUES = [0, 400, 400, 800, 1200, 1600, 400];
     private static readonly long[] PIECE_FILE_PUSH_VALUES = [0, 100, 500, 400, 600, 1200, 300];
@@ -50,10 +50,11 @@ public class Bot_1337 : IChessBot {
             NodeType = nodeType;
         }
     }
-    
+
+    private static Dictionary<ulong, long> opptMovesScoreCache = new();
     private static Dictionary<ulong, long> materialEvalCache = new();
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
-    public Dictionary<ulong, long> mateOrDrawCache = new();
+    private static Dictionary<ulong, long> mateOrDrawCache = new();
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -109,7 +110,7 @@ public class Bot_1337 : IChessBot {
         if (legalMoves.Length == 0) {
             if (board.IsInCheck()) {
                 // Checkmate
-                score = maximizingPlayer ? -INFINITY : INFINITY;
+                score = INFINITY * (board.IsWhiteToMove ? -1 : 1);
             } else {
                 // Stalemate
                 score = evaluateDraw(EvaluateMaterial(board));
@@ -172,25 +173,32 @@ public class Bot_1337 : IChessBot {
         return random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
     }
 
-    // Positive favors the player to move
+    // Positive favors white
     private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board);
         bool isWhite = board.IsWhiteToMove;
-        evaluation *= (isWhite ? 1 : -1);
         // Check penalty
         if (board.IsInCheck()) {
-            evaluation -= CHECK_PENALTY;
+            evaluation -= CHECK_PENALTY * (isWhite ? 1 : -1);
         }
         
         // Swarm heuristic - bonus for pieces near enemy king
-        evaluation += CalculateSwarmBonus(board, isWhite);
+        evaluation += CalculateSwarmBonus(board);
 
         // Push heuristic - bonus for advancing pieces toward enemy
-        evaluation += CalculatePushBonus(board, isWhite);
+        evaluation += CalculatePushBonus(board);
 
         // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses
-        evaluation += minOpptMovesScore(legalMoves);
-
+        evaluation += (board.IsWhiteToMove ? 1 : -1) * opptMovesScoreCache.GetOrCreate(board.ZobristKey, () => {
+            long score = opptMovesScore(legalMoves);
+            if (board.TrySkipTurn()) {
+                Span<Move> opponentLegalMoves = stackalloc Move[128];
+                board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
+                score -= opptMovesScore(opponentLegalMoves) * (isWhite ? 1 : -1);
+                board.UndoSkipTurn();
+            }
+            return score;
+        });
         return evaluation;
     }
 
@@ -227,55 +235,57 @@ public class Bot_1337 : IChessBot {
         });
     }
 
-    private long CalculateSwarmBonus(Board board, bool isWhite) {
+    private long CalculateSwarmBonus(Board board) {
         long bonus = 0;
-        Square enemyKingSquare = board.GetKingSquare(!isWhite);
-        
         for (int square = 0; square < 64; square++) {
             Piece piece = board.GetPiece(SQUARES[square]);
-            if (piece.IsWhite == isWhite && !piece.IsNull) {
+            if (!piece.IsNull) {
+                Square enemyKingSquare = board.GetKingSquare(!piece.IsWhite);
                 int distance = CalculateKingDistance(square, enemyKingSquare.Index);
-                bonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType];
+                bonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType]
+                    * (piece.IsWhite ? 1 : -1);
             }
         }
         
         return bonus;
     }
 
-    private long CalculatePushBonus(Board board, bool isWhite) {
+    private long CalculatePushBonus(Board board) {
         long bonus = 0;
         
         for (int square = 0; square < 64; square++) {
             Piece piece = board.GetPiece(SQUARES[square]);
-            if (piece.IsWhite == isWhite && !piece.IsNull) {
+            if (!piece.IsNull) {
+                long pieceBonus = 0;
                 int rank = square >> 3;
                 int file = square & 7;
                 var pieceType = (int) piece.PieceType;
-                if (isWhite) {
-                    bonus += WHITE_RANK_ADVANCEMENT_VALUES[rank] 
-                             * PIECE_RANK_PUSH_VALUES[pieceType];
+                if (piece.IsWhite) {
+                    pieceBonus += WHITE_RANK_ADVANCEMENT_VALUES[rank] 
+                                  * PIECE_RANK_PUSH_VALUES[pieceType];
                 } else {
-                    bonus += BLACK_RANK_ADVANCEMENT_VALUES[rank]
-                             * PIECE_RANK_PUSH_VALUES[pieceType];
+                    pieceBonus += BLACK_RANK_ADVANCEMENT_VALUES[rank]
+                                  * PIECE_RANK_PUSH_VALUES[pieceType];
                 }
-                if (rank != (isWhite ? 0 : 7) && pieceType != (int)PieceType.Rook) {
-                    bonus -= FILE_CENTER_DISTANCE_VALUES[file]
-                             * PIECE_FILE_PUSH_VALUES[pieceType];
+                if (rank != (piece.IsWhite ? 0 : 7) && pieceType != (int)PieceType.Rook) {
+                    pieceBonus -= FILE_CENTER_DISTANCE_VALUES[file]
+                                  * PIECE_FILE_PUSH_VALUES[pieceType];
                 }
                 else {
-                    bonus -= FILE_CENTER_DISTANCE_VALUES[0]
-                             * PIECE_FILE_PUSH_VALUES[pieceType];
+                    pieceBonus -= FILE_CENTER_DISTANCE_VALUES[0]
+                                  * PIECE_FILE_PUSH_VALUES[pieceType];
                 }
+                bonus += pieceBonus * (piece.IsWhite ? 1 : -1);
             }
         }
         
         return bonus;
     }
 
-    private static long minOpptMovesScore(Span<Move> responses) {
+    private static long opptMovesScore(Span<Move> responses) {
         long minOpptMovesScore = 0;
         foreach (var move in responses) {
-            minOpptMovesScore -= PENALTY_PER_ENEMY_MOVE
+            minOpptMovesScore += PENALTY_PER_ENEMY_MOVE
                                  + PIECE_VALUES[(int)move.CapturePieceType] *
                                  MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER;
         }
@@ -293,10 +303,11 @@ public class Bot_1337 : IChessBot {
         }
 
         if (materialEval < 0) {
-            // Opponent is ahead on material, so favor the draw
+            // Black is ahead on material, so white favors the draw
             return random.NextInt64(MIN_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
         }
         else if (materialEval > 0) {
+            // White is ahead on material, so black favors the draw
             return -random.NextInt64(MIN_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
         }
 
