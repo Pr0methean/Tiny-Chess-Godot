@@ -278,6 +278,10 @@ public class Bot_1337 : IChessBot {
                     bonus -= FILE_CENTER_DISTANCE_VALUES[file]
                              * PIECE_FILE_PUSH_VALUES[pieceType];
                 }
+                else {
+                    bonus -= FILE_CENTER_DISTANCE_VALUES[0]
+                             * PIECE_FILE_PUSH_VALUES[pieceType];
+                }
             }
         }
         
