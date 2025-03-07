@@ -39,7 +39,6 @@ public class Bot_1337 : IChessBot {
     }
     
     private static Dictionary<ulong, long> basicEvalCache = new();
-    // Option 2: Using LINQ (more concise but perhaps less readable)
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
 
     public Move Think(Board board, Timer timer) {
