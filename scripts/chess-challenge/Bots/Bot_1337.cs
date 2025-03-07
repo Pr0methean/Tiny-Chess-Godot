@@ -304,11 +304,6 @@ public class Bot_1337 : IChessBot {
     private static bool isBareKing(ulong bitboard) {
         return (bitboard & (bitboard - 1)) == 0;
     }
-
-    // Adjustments that need to consider the move rather than the position
-    private static long getMiscMoveAdjustments(Move move) {
-        
-    }
 }
 
 static class DictionaryExt {
