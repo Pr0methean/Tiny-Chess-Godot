@@ -129,7 +129,7 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
 
-        boolean foundNonQuietMove = false;
+        bool foundNonQuietMove = false;
         score = maximizingPlayer ? -INFINITY : INFINITY;
         foreach (var move in legalMoves) {
             byte nextDepth;
