@@ -37,10 +37,11 @@ public class Bot_1337 : IChessBot {
         public int Depth;
         public byte NodeType;
     }
-
+    
     private static Dictionary<ulong, long> basicEvalCache = new();
     // Option 2: Using LINQ (more concise but perhaps less readable)
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
+    public static HashSet<ulong> endgamePositions = new(); // FIXME: Replace with Bloom filter?
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -84,6 +85,7 @@ public class Bot_1337 : IChessBot {
         long score;
         var legalMoves = board.GetLegalMoves();
         if (legalMoves.Length == 0) {
+            endgamePositions.Add(key);
             if (board.IsInCheck()) {
                 // Checkmate
                 score = maximizingPlayer ? -INFINITY : INFINITY;
@@ -92,6 +94,7 @@ public class Bot_1337 : IChessBot {
                 score = evaluateDraw(EvaluateBasicPosition(board));
             }
         } else if (board.IsRepeatedPosition() || board.IsInsufficientMaterial()) {
+            endgamePositions.Add(key);
             score = evaluateDraw(EvaluateBasicPosition(board));
         } else if (depth == 0) {
             score = EvaluatePosition(board);
@@ -232,23 +235,6 @@ public class Bot_1337 : IChessBot {
             + PIECE_VALUES[(int)m.CapturePieceType] * MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER);
     }
     
-    private long EvaluateOpponentBestMove(Board board) {
-        long bestEval = -INFINITY;
-        var opponentMoves = board.GetLegalMoves();
-        if (opponentMoves.Length == 0) {
-            return 0;
-        }
-        foreach (var move in opponentMoves) {
-            board.MakeMove(move);
-            long eval = EvaluateBasicPosition(board);
-            board.UndoMove(move);
-            
-            bestEval = Math.Max(bestEval, eval);
-        }
-        
-        return bestEval;
-    }
-    
     private static long evaluateDraw(long materialEval) {
         if (materialEval >= 100_000_000_000) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
@@ -287,8 +273,7 @@ public class Bot_1337 : IChessBot {
 static class DictionaryExt {
     public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> creator) 
     {
-        if (!dict.TryGetValue(key, out TValue val))
-        {
+        if (!dict.TryGetValue(key, out TValue val)) {
             val = creator();
             dict.Add(key, val);
         }
