@@ -244,7 +244,7 @@ public class Bot_1337 : IChessBot {
                 long pieceBonus = 0;
                 Square enemyKingSquare = board.GetKingSquare(!piece.IsWhite);
                 int distance = CalculateKingDistance(square, enemyKingSquare.Index);
-                pieceBonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType]
+                pieceBonus -= distance * PIECE_SWARM_VALUES[(int)piece.PieceType];
                 int rank = square >> 3;
                 int file = square & 7;
                 var pieceType = (int) piece.PieceType;
