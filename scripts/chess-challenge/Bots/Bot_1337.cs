@@ -10,7 +10,7 @@ using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
     private static int MAX_MONOTONIC_KEY =
-        8 * (1 + 9 + 9 * 9 + 9 * 9 * 9 + 9 * 9 * 9 * 9 + 9 * 9 * 9 * 9 * 9) + 30 * 9 * 9 * 9 * 9 * 9 * 9;
+        16 | (16 << 5) | (30 << 10);
     private const byte QUIET_DEPTH = 2;
     private const long INFINITY = 1_000_000_000_000;
 
@@ -111,19 +111,10 @@ public class Bot_1337 : IChessBot {
     public static int monoticKey(Board board) {
         ulong whitePawnBoard = board.GetPieceBitboard(PieceType.Pawn, true);
         ulong blackPawnBoard = board.GetPieceBitboard(PieceType.Pawn, false);
-        return BitOperations.PopCount(whitePawnBoard & 0x00ff0000ff000000)
-               + 9 *
-               (BitOperations.PopCount(blackPawnBoard & 0x000000ff0000ff00)
-                + 9 *
-                (BitOperations.PopCount(whitePawnBoard & 0x00ffff00ffff0000)
-                 + 9 *
-                 (BitOperations.PopCount(blackPawnBoard & 0x0000ffff00ffff00)
-                  + 9 *
-                  (BitOperations.PopCount(whitePawnBoard & 0x00ffffff00000000)
-                   + 9 *
-                   (BitOperations.PopCount(blackPawnBoard & 0x00000000ffffff00)
-                    + 9 *
-                    (BitOperations.PopCount(board.AllPiecesBitboard) - 2))))));
+        ulong nonPawnBoard = board.AllPiecesBitboard & ~whitePawnBoard & ~blackPawnBoard;
+        return BitOperations.PopCount(whitePawnBoard & 0x00ffffff_00000000 | blackPawnBoard & 0x00000000_ffffff00)
+               | BitOperations.PopCount(whitePawnBoard | blackPawnBoard) << 5
+               | (BitOperations.PopCount(nonPawnBoard) - 2) << 10;
     }
 
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
@@ -314,7 +305,7 @@ public class Bot_1337 : IChessBot {
         if (materialEval >= BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
             return -900_000_000_000L;
-        }
+ *       }
         if (materialEval <= -BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
             return 900_000_000_000L;
