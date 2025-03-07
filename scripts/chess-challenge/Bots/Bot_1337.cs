@@ -217,15 +217,16 @@ public class Bot_1337 : IChessBot {
             if (piece.IsWhite == isWhite && !piece.IsNull) {
                 int rank = square >> 3;
                 int file = square & 7;
+                var pieceType = (int) piece.PieceType;
                 if (isWhite) {
                     bonus += WHITE_RANK_ADVANCEMENT_VALUES[rank] 
-                             * PIECE_RANK_PUSH_VALUES[(int) piece.PieceType];
+                             * PIECE_RANK_PUSH_VALUES[pieceType];
                 } else {
                     bonus += BLACK_RANK_ADVANCEMENT_VALUES[rank]
-                             * PIECE_RANK_PUSH_VALUES[(int) piece.PieceType];
+                             * PIECE_RANK_PUSH_VALUES[pieceType];
                 }
                 bonus -= FILE_CENTER_DISTANCE_VALUES[file]
-                    * PIECE_FILE_PUSH_VALUES[(int) piece.PieceType];
+                    * PIECE_FILE_PUSH_VALUES[pieceType];
             }
         }
         
