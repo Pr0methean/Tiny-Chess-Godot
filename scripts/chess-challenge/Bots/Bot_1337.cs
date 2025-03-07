@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace auto_Bot_1337;
 
 using System.Diagnostics;
@@ -6,7 +8,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const int MAX_DEPTH = 4;
+    private const byte MAX_DEPTH = 4;
     private const long INFINITY = 1_000_000_000_000;
     
     private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
@@ -27,15 +29,22 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] FILE_CENTER_DISTANCE_VALUES = [6, 3, 1, 0, 0, 1, 3, 6];
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
+    private static Square[] SQUARES = Enumerable.Range(0, 64).Select(i => new Square(i)).ToArray();
     private static Random random = new();
     private const byte EXACT = 0;
     private const byte LOWERBOUND = 1;
     private const byte UPPERBOUND = 2;
-    
-    private struct CacheEntry {
-        public long Score;
-        public int Depth;
-        public byte NodeType;
+    // Make the struct readonly and add StructLayout attribute
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private readonly struct CacheEntry {
+        public readonly long Score;
+        public readonly byte Depth;
+        public readonly byte NodeType;
+        public CacheEntry(long score, byte depth, byte nodeType) {
+            Score = score;
+            Depth = depth;
+            NodeType = nodeType;
+        }
     }
     
     private static Dictionary<ulong, long> basicEvalCache = new();
@@ -70,7 +79,7 @@ public class Bot_1337 : IChessBot {
         return bestMove;
     }
 
-    private long AlphaBeta(Board board, int depth, long alpha, long beta, bool maximizingPlayer) {
+    private long AlphaBeta(Board board, byte depth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
         // Cache lookup
         if (alphaBetaCache.TryGetValue(key, out var entry) && entry.Depth >= depth) {
@@ -98,7 +107,7 @@ public class Bot_1337 : IChessBot {
             score = -INFINITY;
             foreach (var move in legalMoves) {
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, depth - 1, alpha, beta, false);
+                long eval = AlphaBeta(board, (byte) (depth - 1), alpha, beta, false);
                 eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                 board.UndoMove(move);
 
@@ -111,7 +120,7 @@ public class Bot_1337 : IChessBot {
             score = INFINITY;
             foreach (var move in legalMoves) {
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, depth - 1, alpha, beta, true);
+                long eval = AlphaBeta(board, (byte) (depth - 1), alpha, beta, true);
                 eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                 board.UndoMove(move);
 
@@ -125,11 +134,9 @@ public class Bot_1337 : IChessBot {
         var nodeType = score <= alpha ? UPPERBOUND : 
             score >= beta ? LOWERBOUND : EXACT;
 
-        alphaBetaCache[key] = new CacheEntry {
-            Score = score,
-            Depth = depth,
-            NodeType = nodeType
-        };
+        alphaBetaCache[key] = new CacheEntry(
+            score, depth, nodeType
+        );
         return score;
     }
     
@@ -164,10 +171,10 @@ public class Bot_1337 : IChessBot {
             }
             else {
                 for (int square = 0; square < 64; square++) {
-                    Piece piece = board.GetPiece(new Square(square));
+                    Piece piece = board.GetPiece(SQUARES[square]);
                     long pieceValue = PIECE_VALUES[(int)piece.PieceType]; 
                     if (piece.IsPawn) {
-                        int rank = square / 8;
+                        int rank = square >> 3;
                         pieceValue += (piece.IsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
                             [rank];
                     }
@@ -192,7 +199,7 @@ public class Bot_1337 : IChessBot {
         Square enemyKingSquare = board.GetKingSquare(!isWhite);
         
         for (int square = 0; square < 64; square++) {
-            Piece piece = board.GetPiece(new Square(square));
+            Piece piece = board.GetPiece(SQUARES[square]);
             if (piece.IsWhite == isWhite && !piece.IsNull) {
                 int distance = CalculateManhattanDistance(square, enemyKingSquare.Index);
                 bonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType];
@@ -206,10 +213,10 @@ public class Bot_1337 : IChessBot {
         long bonus = 0;
         
         for (int square = 0; square < 64; square++) {
-            Piece piece = board.GetPiece(new Square(square));
+            Piece piece = board.GetPiece(SQUARES[square]);
             if (piece.IsWhite == isWhite && !piece.IsNull) {
-                int rank = square / 8;
-                int file = square % 8;
+                int rank = square >> 3;
+                int file = square & 7;
                 if (isWhite) {
                     bonus += WHITE_RANK_ADVANCEMENT_VALUES[rank] 
                              * PIECE_RANK_PUSH_VALUES[(int) piece.PieceType];
@@ -253,10 +260,10 @@ public class Bot_1337 : IChessBot {
     }
 
     private int CalculateManhattanDistance(int square1, int square2) {
-        int x1 = square1 % 8;
-        int y1 = square1 / 8;
-        int x2 = square2 % 8;
-        int y2 = square2 / 8;
+        int x1 = square1 & 7;
+        int y1 = square1 >> 3;
+        int x2 = square2 & 7;
+        int y2 = square2 >> 3;
         
         return Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
     }
