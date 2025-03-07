@@ -20,12 +20,13 @@ public class Bot_1337 : IChessBot {
     private const long CHECK_PENALTY = 1_000_000_000;
     // private const long CHECK_BONUS = 1_000_000;
     private const long CASTLING_RIGHT_VALUE = 2_000_000;
+    private const long CASTLING_BONUS = 5_000_000;
     private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
     private static readonly long[] PIECE_RANK_PUSH_VALUES = [0, 400, 400, 800, 1200, 1600, 400];
     private static readonly long[] PIECE_FILE_PUSH_VALUES = [0, 100, 500, 400, 600, 1200, 300];
     private static readonly long[] PIECE_SWARM_VALUES = [0, 75, 150, 300, 400, 450, 200];
-    private static readonly long[] WHITE_PASSED_PAWN_VALUES = [0, 0, 0, 0, 16, 64, 128, 0];
-    private static readonly long[] BLACK_PASSED_PAWN_VALUES = [0, 128, 64, 16, 0, 0, 0, 0];
+    private static readonly long[] WHITE_PASSED_PAWN_VALUES = [0, 0, 0, 0, 16_000_000, 64_000_000, 128_000_000, 0];
+    private static readonly long[] BLACK_PASSED_PAWN_VALUES = [0, 128_000_000, 64_000_000, 16_000_000, 0, 0, 0, 0];
     private static readonly long[] FILE_CENTER_DISTANCE_VALUES = [6, 3, 1, 0, 0, 1, 3, 6];
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
@@ -179,6 +180,11 @@ public class Bot_1337 : IChessBot {
         // Check penalty
         if (board.IsInCheck()) {
             evaluation -= CHECK_PENALTY;
+        }
+        
+        // Castling bonus
+        if (board.GameMoveHistory.Last().IsCastles) {
+            evaluation -= CASTLING_BONUS;
         }
         
         // Swarm heuristic - bonus for pieces near enemy king
