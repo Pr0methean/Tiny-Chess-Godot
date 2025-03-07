@@ -284,11 +284,11 @@ public class Bot_1337 : IChessBot {
     private static long evaluateDraw(long materialEval) {
         if (materialEval >= BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
-            return 900_000_000_000L;
+            return -900_000_000_000L;
         }
         if (materialEval <= -BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
-            return -900_000_000_000L;
+            return 900_000_000_000L;
         }
 
         if (materialEval < 0) {
