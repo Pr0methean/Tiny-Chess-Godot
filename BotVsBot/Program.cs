@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using auto_Bot_1337;
-using ChessChallenge.API;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
