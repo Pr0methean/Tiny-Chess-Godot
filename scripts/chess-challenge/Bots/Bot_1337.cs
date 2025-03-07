@@ -54,7 +54,7 @@ public class Bot_1337 : IChessBot {
 
         // [Seb tweak end]
         Move bestMove = Move.NullMove;
-        long bestValue = -INFINITY;
+        long bestValue = long.MinValue;
         
         var legalMoves = board.GetLegalMoves();
         
@@ -63,7 +63,7 @@ public class Bot_1337 : IChessBot {
             long value = -AlphaBeta(board, MAX_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
             
-            if (value > bestValue) {
+            if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
                 bestMove = move;
             }
