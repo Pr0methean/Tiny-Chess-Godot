@@ -18,7 +18,6 @@ public class Bot_1337 : IChessBot {
     private const long MAX_MOVE_VALUE_NOISE = 10_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 1_000_000_000;
-    private const long 
     // private const long CHECK_BONUS = 1_000_000;
     // private const long CASTLING_BONUS = 2_000_000;
     private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
@@ -54,7 +53,7 @@ public class Bot_1337 : IChessBot {
     private static Dictionary<ulong, long> opptMovesScoreCache = new();
     private static Dictionary<ulong, long> materialEvalCache = new();
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
-    private static Dictionary<ulong, long> mateOrDrawCache = new();
+    public static Dictionary<ulong, long> mateOrDrawCache = new();
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)

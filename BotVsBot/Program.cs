@@ -20,7 +20,7 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-    if (botToMove.mateOrDrawCache.ContainsKey(board.ZobristKey)) {
+    if (Bot_1337.mateOrDrawCache.ContainsKey(board.ZobristKey)) {
         // Handles false positives due to Zobrist collisions
         result = Arbiter.GetGameState(board);
     } else if (Arbiter.isThreefoldRepetition(board)) {
