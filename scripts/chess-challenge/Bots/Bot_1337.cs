@@ -211,11 +211,11 @@ public class Bot_1337 : IChessBot {
             long evaluation = 0;
             if (isBareKing(board.WhitePiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: white is a bare king!");
-                evaluation = BARE_KING_EVAL;
+                evaluation = -BARE_KING_EVAL;
             }
             else if (isBareKing(board.BlackPiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: black is a bare king!");
-                evaluation = -BARE_KING_EVAL;
+                evaluation = BARE_KING_EVAL;
             }
             else {
                 for (int square = 0; square < 64; square++) {
