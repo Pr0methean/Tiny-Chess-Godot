@@ -9,6 +9,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
+    private const int MAX_MONOTONIC_KEY = (30 << 8) | (8 << 4) | 8;
     private const byte QUIET_DEPTH = 2;
     private const long INFINITY = 1_000_000_000_000;
 
@@ -52,12 +53,13 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Dictionary<ulong, long>[] materialEvalCache = new Dictionary<ulong, long>[31];
-    private static Dictionary<ulong, CacheEntry>[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[31];
-    public static Dictionary<ulong, long>[] mateOrDrawCache = new Dictionary<ulong, long>[31];
+    private static Dictionary<ulong, long>[] materialEvalCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
+    private static Dictionary<ulong, CacheEntry>[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[MAX_MONOTONIC_KEY + 1];
+    public static Dictionary<ulong, long>[] mateOrDrawCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
+    private int prevMonotonicKey = MAX_MONOTONIC_KEY;
 
     static Bot_1337() {
-        for (int i = 0; i < 31; i++) {
+        for (int i = 0; i <= MAX_MONOTONIC_KEY; i++) {
             materialEvalCache[i] = new Dictionary<ulong, long>();
             alphaBetaCache[i] = new Dictionary<ulong, CacheEntry>();
             mateOrDrawCache[i] = new Dictionary<ulong, long>();
@@ -78,7 +80,7 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
-        int bestMoveMotonicKey = 30;
+        int bestMoveMotonicKey = MAX_MONOTONIC_KEY;
         foreach (var move in legalMoves) {
             board.MakeMove(move);
             int monotonicKey = monoticKey(board);
@@ -92,19 +94,23 @@ public class Bot_1337 : IChessBot {
             }
         }
 
-        if (bestMove.IsCapture) {
-            for (int i = bestMoveMotonicKey + 1; i < 31; i++) {
+        if (bestMove.IsCapture || bestMove.MovePieceType == PieceType.Pawn) {
+            for (int i = bestMoveMotonicKey + 1; i <= prevMonotonicKey; i++) {
                 materialEvalCache[i].Clear();
                 alphaBetaCache[i].Clear();
                 mateOrDrawCache[i].Clear();
             }
+
+            prevMonotonicKey = bestMoveMotonicKey;
         }
 
         return bestMove;
     }
 
     public static int monoticKey(Board board) {
-        return BitOperations.PopCount(board.AllPiecesBitboard) - 2;
+        return BitOperations.PopCount(board.GetPieceBitboard(PieceType.Pawn, true) & 0x00000000ffffff00)
+            | BitOperations.PopCount(board.GetPieceBitboard(PieceType.Pawn, false) & 0x00ffffff00000000) << 4
+            | (BitOperations.PopCount(board.AllPiecesBitboard) - 2) << 8;
     }
 
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
