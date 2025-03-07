@@ -9,8 +9,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private static int MAX_MONOTONIC_KEY =
-        16 | (16 << 5) | (30 << 10);
+    private static int MAX_MONOTONIC_KEY = 14 | (16 << 4);
     private const byte QUIET_DEPTH = 2;
     private const long INFINITY = 1_000_000_000_000;
 
@@ -95,7 +94,7 @@ public class Bot_1337 : IChessBot {
             }
         }
 
-        if (bestMove.IsCapture || bestMove.MovePieceType == PieceType.Pawn) {
+        if (bestMove.IsCapture || bestMove.IsPromotion) {
             for (int i = bestMoveMotonicKey + 1; i <= prevMonotonicKey; i++) {
                 materialEvalCache[i].Clear();
                 alphaBetaCache[i].Clear();
@@ -109,12 +108,10 @@ public class Bot_1337 : IChessBot {
     }
 
     public static int monoticKey(Board board) {
-        ulong whitePawnBoard = board.GetPieceBitboard(PieceType.Pawn, true);
-        ulong blackPawnBoard = board.GetPieceBitboard(PieceType.Pawn, false);
-        ulong nonPawnBoard = board.AllPiecesBitboard & ~whitePawnBoard & ~blackPawnBoard;
-        return BitOperations.PopCount(whitePawnBoard & 0x00ffffff_00000000 | blackPawnBoard & 0x00000000_ffffff00)
-               | BitOperations.PopCount(whitePawnBoard | blackPawnBoard) << 5
-               | (BitOperations.PopCount(nonPawnBoard) - 2) << 10;
+        ulong pawnsBitboard = board.GetPieceBitboard(PieceType.Pawn, true) | board.GetPieceBitboard(PieceType.Pawn, false);
+        int numPawns = BitOperations.PopCount(pawnsBitboard);
+        int numPiecesPromotableTo = BitOperations.PopCount(board.AllPiecesBitboard) - numPawns - 2;
+        return numPiecesPromotableTo | (numPawns << 4);
     }
 
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
