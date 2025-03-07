@@ -196,7 +196,7 @@ public class Bot_1337 : IChessBot {
         // Push heuristic - bonus for advancing pieces toward enemy
         evaluation += CalculatePushBonus(board, isWhite);
 
-        // MinOpptMove heuristic - evaluate opponent's best response
+        // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses
         evaluation += minOpptMovesScore(legalMoves);
 
         return evaluation;
