@@ -233,7 +233,7 @@ public class Bot_1337 : IChessBot {
         for (int square = 0; square < 64; square++) {
             Piece piece = board.GetPiece(SQUARES[square]);
             if (piece.IsWhite == isWhite && !piece.IsNull) {
-                int distance = CalculateManhattanDistance(square, enemyKingSquare.Index);
+                int distance = CalculateKingDistance(square, enemyKingSquare.Index);
                 bonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType];
             }
         }
@@ -292,13 +292,13 @@ public class Bot_1337 : IChessBot {
         return 0;
     }
 
-    private int CalculateManhattanDistance(int square1, int square2) {
+    private int CalculateKingDistance(int square1, int square2) {
         int x1 = square1 & 7;
         int y1 = square1 >> 3;
         int x2 = square2 & 7;
         int y2 = square2 >> 3;
         
-        return Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
+        return Math.Max(Math.Abs(x1 - x2), Math.Abs(y1 - y2));
     }
     
     private static bool isBareKing(ulong bitboard) {
