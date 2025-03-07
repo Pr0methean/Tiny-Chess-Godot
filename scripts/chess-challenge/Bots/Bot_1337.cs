@@ -272,7 +272,7 @@ public class Bot_1337 : IChessBot {
                     bonus += BLACK_RANK_ADVANCEMENT_VALUES[rank]
                              * PIECE_RANK_PUSH_VALUES[pieceType];
                 }
-                if (rank != (isWhite ? 0 : 7)) {
+                if (rank != (isWhite ? 0 : 7) && pieceType != (int)PieceType.Rook) {
                     bonus -= FILE_CENTER_DISTANCE_VALUES[file]
                              * PIECE_FILE_PUSH_VALUES[pieceType];
                 }
