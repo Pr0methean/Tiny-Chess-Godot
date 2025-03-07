@@ -78,23 +78,22 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
-        int bestMovePiecesLeft = 32;
+        int bestMoveMotonicKey = 30;
         foreach (var move in legalMoves) {
-            int piecesLeft;
             board.MakeMove(move);
-            piecesLeft = BitOperations.PopCount(board.AllPiecesBitboard);
+            int monotonicKey = monoticKey(board);
             long value = -AlphaBeta(board, QUIET_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
             
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
                 bestMove = move;
-                bestMovePiecesLeft = piecesLeft;
+                bestMoveMotonicKey = monotonicKey;
             }
         }
 
         if (bestMove.IsCapture) {
-            for (int i = bestMovePiecesLeft - 2; i < 31; i++) {
+            for (int i = bestMoveMotonicKey + 1; i < 31; i++) {
                 materialEvalCache[i].Clear();
                 alphaBetaCache[i].Clear();
                 mateOrDrawCache[i].Clear();
@@ -104,23 +103,27 @@ public class Bot_1337 : IChessBot {
         return bestMove;
     }
 
+    public static int monoticKey(Board board) {
+        return BitOperations.PopCount(board.AllPiecesBitboard) - 2;
+    }
+
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
-        int piecesLeft = BitOperations.PopCount(board.AllPiecesBitboard);
+        int monotonicKey = monoticKey(board);
         // Cache lookup
-        if (alphaBetaCache[piecesLeft - 2].TryGetValue(key, out var entry) && entry.Depth >= quietDepth) {
+        if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && entry.Depth >= quietDepth) {
             if (entry.NodeType == EXACT) return entry.Score;
             if (entry.NodeType == LOWERBOUND) alpha = Math.Max(alpha, entry.Score);
             if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
             if (alpha >= beta) return entry.Score;
         }
         long score;
-        if (mateOrDrawCache[piecesLeft - 2].TryGetValue(key, out score)) {
+        if (mateOrDrawCache[monotonicKey].TryGetValue(key, out score)) {
             goto cacheStore;
         }
         if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) {
             score = evaluateDraw(EvaluateMaterial(board));
-            mateOrDrawCache[piecesLeft - 2][key] = score;
+            mateOrDrawCache[monotonicKey][key] = score;
             goto cacheStore;
         }
 
@@ -134,7 +137,7 @@ public class Bot_1337 : IChessBot {
                 // Stalemate
                 score = evaluateDraw(EvaluateMaterial(board));
             }
-            mateOrDrawCache[piecesLeft - 2][key] = score;
+            mateOrDrawCache[monotonicKey][key] = score;
             goto cacheStore;
         }
         
@@ -184,7 +187,7 @@ public class Bot_1337 : IChessBot {
         var nodeType = score <= alpha ? UPPERBOUND : 
             score >= beta ? LOWERBOUND : EXACT;
 
-        alphaBetaCache[piecesLeft - 2][key] = new CacheEntry(
+        alphaBetaCache[monotonicKey][key] = new CacheEntry(
             score, quietDepth, nodeType
         );
         return score;
@@ -222,8 +225,8 @@ public class Bot_1337 : IChessBot {
 
     // Positive favors white. Cache shared between both sides.
     private static long EvaluateMaterial(Board board) {
-        int piecesLeft = BitOperations.PopCount(board.AllPiecesBitboard);
-        return materialEvalCache[piecesLeft - 2].GetOrCreate(board.ZobristKey, () => {
+        int monotonicKey = monoticKey(board);
+        return materialEvalCache[monotonicKey].GetOrCreate(board.ZobristKey, () => {
             // Material and basic position evaluation
             long evaluation = 0;
             if (isBareKing(board.WhitePiecesBitboard)) {
