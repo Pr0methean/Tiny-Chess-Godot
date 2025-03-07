@@ -52,7 +52,6 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Dictionary<ulong, long> opptMovesScoreCache = new();
     private static Dictionary<ulong, long> materialEvalCache = new();
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
     public static Dictionary<ulong, long> mateOrDrawCache = new();
@@ -184,22 +183,17 @@ public class Bot_1337 : IChessBot {
         }
         
         // Swarm heuristic - bonus for pieces near enemy king
-        evaluation += CalculateSwarmBonus(board);
-
         // Push heuristic - bonus for advancing pieces toward enemy
-        evaluation += CalculatePushBonus(board);
+        evaluation += CalculateSwarmAndPushBonus(board);
 
-        // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses
-        evaluation += (board.IsWhiteToMove ? 1 : -1) * opptMovesScoreCache.GetOrCreate(board.ZobristKey, () => {
-            long score = opptMovesScore(legalMoves);
-            if (board.TrySkipTurn()) {
-                Span<Move> opponentLegalMoves = stackalloc Move[128];
-                board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
-                score -= opptMovesScore(opponentLegalMoves) * (isWhite ? 1 : -1);
-                board.UndoSkipTurn();
-            }
-            return score;
-        });
+        // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
+        evaluation += opptMovesScore(legalMoves) * (isWhite ? 1 : -1);
+        if (board.TrySkipTurn()) {
+            Span<Move> opponentLegalMoves = stackalloc Move[128];
+            board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
+            evaluation -= opptMovesScore(opponentLegalMoves) * (isWhite ? 1 : -1);
+            board.UndoSkipTurn();
+        }
 
         if (board.FiftyMoveCounter >= 40 && evaluation != 0) {
             long underdogMultiplier = (evaluation > 0) ? -1 : 1;
@@ -242,28 +236,15 @@ public class Bot_1337 : IChessBot {
         });
     }
 
-    private long CalculateSwarmBonus(Board board) {
+    private long CalculateSwarmAndPushBonus(Board board) {
         long bonus = 0;
-        for (int square = 0; square < 64; square++) {
-            Piece piece = board.GetPiece(SQUARES[square]);
-            if (!piece.IsNull) {
-                Square enemyKingSquare = board.GetKingSquare(!piece.IsWhite);
-                int distance = CalculateKingDistance(square, enemyKingSquare.Index);
-                bonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType]
-                    * (piece.IsWhite ? 1 : -1);
-            }
-        }
-        
-        return bonus;
-    }
-
-    private long CalculatePushBonus(Board board) {
-        long bonus = 0;
-        
         for (int square = 0; square < 64; square++) {
             Piece piece = board.GetPiece(SQUARES[square]);
             if (!piece.IsNull) {
                 long pieceBonus = 0;
+                Square enemyKingSquare = board.GetKingSquare(!piece.IsWhite);
+                int distance = CalculateKingDistance(square, enemyKingSquare.Index);
+                pieceBonus += (7 - distance) * PIECE_SWARM_VALUES[(int) piece.PieceType]
                 int rank = square >> 3;
                 int file = square & 7;
                 var pieceType = (int) piece.PieceType;
