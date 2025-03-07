@@ -174,6 +174,7 @@ public class Bot_1337 : IChessBot {
         return evaluation;
     }
 
+    // Positive favors white. Cache shared between both sides.
     private static long EvaluateBasicPosition(Board board) {
         return basicEvalCache.GetOrCreate(board.ZobristKey, () => {
             // Material and basic position evaluation
@@ -204,7 +205,7 @@ public class Bot_1337 : IChessBot {
 
             // Check bonus
             if (board.IsInCheck()) {
-                evaluation += ENEMY_CHECK_BONUS;
+                evaluation += ENEMY_CHECK_BONUS * (board.IsWhiteToMove ? -1 : 1);
             }
 
             return evaluation;
