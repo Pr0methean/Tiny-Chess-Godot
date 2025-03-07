@@ -28,12 +28,19 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
     private static Random random = new();
+    private const byte EXACT = 0;
+    private const byte LOWERBOUND = 1;
+    private const byte UPPERBOUND = 2;
+    
+    private struct CacheEntry {
+        public long Score;
+        public int Depth;
+        public byte NodeType;
+    }
 
     private static Dictionary<ulong, long> basicEvalCache = new();
     // Option 2: Using LINQ (more concise but perhaps less readable)
-    private Dictionary<ulong, long>[] alphaBetaCache = Enumerable.Range(0, MAX_DEPTH)
-        .Select(_ => new Dictionary<ulong, long>())
-        .ToArray();
+    private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -65,64 +72,66 @@ public class Bot_1337 : IChessBot {
     }
 
     private long AlphaBeta(Board board, int depth, long alpha, long beta, bool maximizingPlayer) {
-        long alphaBeta;
-        for (int cacheDepth = MAX_DEPTH - 1; cacheDepth > depth; depth--) {
-            if (alphaBetaCache[cacheDepth].TryGetValue(board.ZobristKey, out alphaBeta)) {
-                return alphaBeta;
-            }
+        ulong key = board.ZobristKey;
+        // Cache lookup
+        if (alphaBetaCache.TryGetValue(key, out var entry) && entry.Depth >= depth) {
+            if (entry.NodeType == EXACT) return entry.Score;
+            if (entry.NodeType == LOWERBOUND) alpha = Math.Max(alpha, entry.Score);
+            if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
+            if (alpha >= beta) return entry.Score;
         }
 
-        return alphaBetaCache[depth].GetOrCreate(board.ZobristKey, () => {
-            var legalMoves = board.GetLegalMoves();
-            if (legalMoves.Length == 0) {
-                if (board.IsInCheck()) {
-                    // Checkmate
-                    return maximizingPlayer ? -INFINITY : INFINITY;
-                }
+        long score;
+        var legalMoves = board.GetLegalMoves();
+        if (legalMoves.Length == 0) {
+            if (board.IsInCheck()) {
+                // Checkmate
+                score = maximizingPlayer ? -INFINITY : INFINITY;
+            } else {
                 // Stalemate
-                return evaluateDraw(EvaluateBasicPosition(board));
+                score = evaluateDraw(EvaluateBasicPosition(board));
             }
+        } else if (board.IsRepeatedPosition() || board.IsInsufficientMaterial()) {
+            score = evaluateDraw(EvaluateBasicPosition(board));
+        } else if (depth == 0) {
+            score = EvaluatePosition(board);
+        } else if (maximizingPlayer) {
+            score = -INFINITY;
+            foreach (var move in legalMoves) {
+                board.MakeMove(move);
+                long eval = AlphaBeta(board, depth - 1, alpha, beta, false);
+                eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
+                board.UndoMove(move);
 
-            if (board.IsRepeatedPosition() || board.IsInsufficientMaterial()) {
-                return evaluateDraw(EvaluateBasicPosition(board));
+                score = Math.Max(score, eval);
+                alpha = Math.Max(alpha, eval);
+                if (beta <= alpha)
+                    break;
             }
-
-            if (depth == 0) {
-                return EvaluatePosition(board);
-            }
-
-            if (maximizingPlayer) {
-                long maxEval = -INFINITY;
-                foreach (var move in legalMoves) {
-                    board.MakeMove(move);
-                    long eval = AlphaBeta(board, depth - 1, alpha, beta, false);
-                    eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
-                    board.UndoMove(move);
-
-                    maxEval = Math.Max(maxEval, eval);
-                    alpha = Math.Max(alpha, eval);
-                    if (beta <= alpha)
-                        break;
-                }
-
-                return maxEval;
-            }
-
-            long minEval = INFINITY;
+        } else {
+            score = INFINITY;
             foreach (var move in legalMoves) {
                 board.MakeMove(move);
                 long eval = AlphaBeta(board, depth - 1, alpha, beta, true);
                 eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                 board.UndoMove(move);
 
-                minEval = Math.Min(minEval, eval);
+                score = Math.Min(score, eval);
                 beta = Math.Min(beta, eval);
                 if (beta <= alpha)
                     break;
             }
+        }
+        // Cache store
+        var nodeType = score <= alpha ? UPPERBOUND : 
+            score >= beta ? LOWERBOUND : EXACT;
 
-            return minEval;
-        });
+        alphaBetaCache[key] = new CacheEntry {
+            Score = score,
+            Depth = depth,
+            NodeType = nodeType
+        };
+        return score;
     }
     
     private long EvaluatePosition(Board board) { 
