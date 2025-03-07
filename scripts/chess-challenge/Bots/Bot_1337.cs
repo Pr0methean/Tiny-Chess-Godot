@@ -176,7 +176,7 @@ public class Bot_1337 : IChessBot {
             if (beta <= alpha)
                 break;
         }
-        if (quietDepth == 0 && !foundNonQuietMove) {
+        if (alpha < beta && quietDepth == 0 && !foundNonQuietMove) {
             score = EvaluatePosition(board, legalMoves);
         }
         // Cache store
