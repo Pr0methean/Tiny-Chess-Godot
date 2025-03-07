@@ -129,7 +129,7 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
         if (depth == 0) {
-            score = EvaluatePosition(board);
+            score = EvaluatePosition(board, legalMoves);
             goto cacheStore;
         }
         if (maximizingPlayer) {
@@ -173,13 +173,10 @@ public class Bot_1337 : IChessBot {
     }
 
     // Positive favors the player to move
-    private long EvaluatePosition(Board board) { 
+    private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board);
         bool isWhite = board.IsWhiteToMove;
         evaluation *= (isWhite ? 1 : -1);
-
-        Span<Move> legalMoves = stackalloc Move[128];
-        board.GetLegalMovesNonAlloc(ref legalMoves);
         // Check penalty
         if (board.IsInCheck()) {
             evaluation -= CHECK_PENALTY;
