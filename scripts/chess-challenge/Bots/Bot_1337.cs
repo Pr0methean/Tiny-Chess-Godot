@@ -56,7 +56,7 @@ public class Bot_1337 : IChessBot {
     private static Dictionary<ulong, long>?[] materialEvalCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
     private static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[MAX_MONOTONIC_KEY + 1];
     public static Dictionary<ulong, long>?[] mateOrDrawCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
-    private int prevMonotonicKey = MAX_MONOTONIC_KEY;
+    public static int currentMonotonicKey { get; private set; } = MAX_MONOTONIC_KEY;
 
     static Bot_1337() {
         for (int i = 0; i <= MAX_MONOTONIC_KEY; i++) {
@@ -95,14 +95,13 @@ public class Bot_1337 : IChessBot {
             board.UndoMove(move);
         }
 
-        if (bestMoveMonotonicKey < prevMonotonicKey) {
-            for (int i = bestMoveMonotonicKey + 1; i <= prevMonotonicKey; i++) {
+        if (bestMoveMonotonicKey < currentMonotonicKey) {
+            for (int i = bestMoveMonotonicKey + 1; i <= currentMonotonicKey; i++) {
                 materialEvalCache[i] = null;
                 alphaBetaCache[i] = null;
                 mateOrDrawCache[i] = null;
             }
-            prevMonotonicKey = bestMoveMonotonicKey;
-            GC.Collect();
+            currentMonotonicKey = bestMoveMonotonicKey;
         }
 
         return bestMove;
@@ -113,7 +112,8 @@ public class Bot_1337 : IChessBot {
         ulong blackPawnsBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
         ulong pawnsBitboard = whitePawnsBitboard | blackPawnsBitboard;
         ulong rank34PawnsBitboard = (whitePawnsBitboard & 0x0000ffff00000000) | (blackPawnsBitboard & 0x00000000ffff0000);
-        ulong backRankPawnsBitboard = (whitePawnsBitboard & 0xffff000000000000) | (blackPawnsBitboard & 0x000000000000ffff)
+        ulong backRankPawnsBitboard =
+            (whitePawnsBitboard & 0xffff000000000000) | (blackPawnsBitboard & 0x000000000000ffff);
         int numPawns = BitOperations.PopCount(pawnsBitboard);
         int numRank34Pawns = BitOperations.PopCount(rank34PawnsBitboard);
         int numBackRankPawns = BitOperations.PopCount(backRankPawnsBitboard);
