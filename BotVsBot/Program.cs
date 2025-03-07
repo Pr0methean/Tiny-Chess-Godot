@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using auto_Bot_1337;
+using ChessChallenge.API;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
@@ -14,6 +15,7 @@ bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
 GameResult result = GameResult.InProgress;
+int monotonicKey = Bot_1337.MAX_MONOTONIC_KEY;
 do {
     Bot_1337 botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
@@ -21,7 +23,10 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-    if (Bot_1337.mateOrDrawCache[Bot_1337.monoticKey(apiBoard)].ContainsKey(board.ZobristKey)) {
+    if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
+        monotonicKey = Bot_1337.monotonicKey(apiBoard);
+    }
+    if (Bot_1337.mateOrDrawCache[monotonicKey].ContainsKey(board.ZobristKey)) {
         // Handles false positives due to Zobrist collisions
         result = Arbiter.GetGameState(board);
     } else if (Arbiter.isThreefoldRepetition(board)) {
