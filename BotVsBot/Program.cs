@@ -14,7 +14,7 @@ bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
 do {
-    IChessBot botToMove = whiteToMove ? white : black;
+    Bot_1337 botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
     Debug.WriteLine("Chosen move: " + move);
     apiBoard.MakeMove(move);
