@@ -8,11 +8,10 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const byte QUIET_DEPTH = 3;
+    private const byte QUIET_DEPTH = 2;
     private const long INFINITY = 1_000_000_000_000;
 
     private const long MATERIAL_MULTIPLIER = 1_000_000;
-    private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private const long VALUE_PER_AVAILABLE_MOVE = 1_000_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 1_000_000_000;
@@ -85,10 +84,10 @@ public class Bot_1337 : IChessBot {
         return bestMove;
     }
 
-    private long AlphaBeta(Board board, byte depth, long alpha, long beta, bool maximizingPlayer) {
+    private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
         // Cache lookup
-        if (alphaBetaCache.TryGetValue(key, out var entry) && entry.Depth >= depth) {
+        if (alphaBetaCache.TryGetValue(key, out var entry) && entry.Depth >= quietDepth) {
             if (entry.NodeType == EXACT) return entry.Score;
             if (entry.NodeType == LOWERBOUND) alpha = Math.Max(alpha, entry.Score);
             if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
@@ -134,14 +133,14 @@ public class Bot_1337 : IChessBot {
         foreach (var move in legalMoves) {
             byte nextDepth;
             if (move.IsCapture || move.IsPromotion) {
-                nextDepth = depth;
+                nextDepth = quietDepth;
                 foundNonQuietMove = true;
             }
             else {
-                if (depth == 0) {
+                if (quietDepth == 0) {
                     continue;
                 }
-                nextDepth = (byte) (depth - 1);
+                nextDepth = (byte) (quietDepth - 1);
             }
             board.MakeMove(move);
             long eval = AlphaBeta(board, nextDepth, alpha, beta, false);
@@ -156,7 +155,7 @@ public class Bot_1337 : IChessBot {
             if (beta <= alpha)
                 break;
         }
-        if (depth == 0 && !foundNonQuietMove) {
+        if (quietDepth == 0 && !foundNonQuietMove) {
             score = EvaluatePosition(board, legalMoves);
         }
         // Cache store
@@ -165,7 +164,7 @@ public class Bot_1337 : IChessBot {
             score >= beta ? LOWERBOUND : EXACT;
 
         alphaBetaCache[key] = new CacheEntry(
-            score, depth, nodeType
+            score, quietDepth, nodeType
         );
         return score;
     }
