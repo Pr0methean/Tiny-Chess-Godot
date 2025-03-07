@@ -17,7 +17,7 @@ public class Bot_1337 : IChessBot {
     private const long MAX_DRAW_VALUE_WHEN_BEHIND = 900_000_000;
     private const long MAX_MOVE_VALUE_NOISE = 1_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
-    private const long ENEMY_CHECK_BONUS = 1_000_000_000;
+    private const long CHECK_PENALTY = 1_000_000_000;
     // private const long CHECK_BONUS = 1_000_000;
     // private const long CASTLING_BONUS = 2_000_000;
     private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
@@ -50,7 +50,7 @@ public class Bot_1337 : IChessBot {
         }
     }
     
-    private static Dictionary<ulong, long> basicEvalCache = new();
+    private static Dictionary<ulong, long> materialEvalCache = new();
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
     public Dictionary<ulong, long> mateOrDrawCache = new();
 
@@ -97,15 +97,11 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
         if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) {
-            score = evaluateDraw(EvaluateBasicPosition(board));
+            score = evaluateDraw(EvaluateMaterial(board));
             mateOrDrawCache[key] = score;
             goto cacheStore;
         }
-        if (board.IsRepeatedPosition()) {
-            // Don't store in mateOrDrawCache, because Board's repetition rule is 2-fold while Arbiter's is 3-fold
-            score = evaluateDraw(EvaluateBasicPosition(board));
-            goto cacheStore;
-        }
+        
         var legalMoves = board.GetLegalMoves();
         if (legalMoves.Length == 0) {
             if (board.IsInCheck()) {
@@ -113,9 +109,20 @@ public class Bot_1337 : IChessBot {
                 score = maximizingPlayer ? -INFINITY : INFINITY;
             } else {
                 // Stalemate
-                score = evaluateDraw(EvaluateBasicPosition(board));
+                score = evaluateDraw(EvaluateMaterial(board));
             }
             mateOrDrawCache[key] = score;
+            goto cacheStore;
+        }
+        
+        // Check this after GetLegalMoves, so that IsInCheck hits cache
+        if (board.IsRepeatedPosition()) {
+            // Don't store in mateOrDrawCache, because Board's repetition rule is 2-fold while Arbiter's is 3-fold
+            long baseScore = EvaluateMaterial(board);
+            if (board.IsInCheck()) {
+                baseScore -= CHECK_PENALTY;
+            }    
+            score = evaluateDraw(baseScore);
             goto cacheStore;
         }
         if (depth == 0) {
@@ -162,10 +169,15 @@ public class Bot_1337 : IChessBot {
     
     // Positive favors the player to move
     private long EvaluatePosition(Board board) { 
-        var evaluation = EvaluateBasicPosition(board);
+        var evaluation = EvaluateMaterial(board);
         bool isWhite = board.IsWhiteToMove;
         evaluation *= (isWhite ? 1 : -1);
 
+        // Check penalty
+        if (board.IsInCheck()) {
+            evaluation -= CHECK_PENALTY;
+        }
+        
         // Swarm heuristic - bonus for pieces near enemy king
         evaluation += CalculateSwarmBonus(board, isWhite);
 
@@ -179,8 +191,8 @@ public class Bot_1337 : IChessBot {
     }
 
     // Positive favors white. Cache shared between both sides.
-    private static long EvaluateBasicPosition(Board board) {
-        return basicEvalCache.GetOrCreate(board.ZobristKey, () => {
+    private static long EvaluateMaterial(Board board) {
+        return materialEvalCache.GetOrCreate(board.ZobristKey, () => {
             // Material and basic position evaluation
             long evaluation = 0;
             if (isBareKing(board.WhitePiecesBitboard)) {
@@ -205,11 +217,6 @@ public class Bot_1337 : IChessBot {
                 }
 
                 Debug.WriteLine("Material eval: {0}", evaluation);
-            }
-
-            // Check bonus
-            if (board.IsInCheck()) {
-                evaluation += ENEMY_CHECK_BONUS * (board.IsWhiteToMove ? -1 : 1);
             }
 
             return evaluation;
