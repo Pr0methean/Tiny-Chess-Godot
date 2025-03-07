@@ -12,7 +12,7 @@ public class Bot_1337 : IChessBot {
     private const long INFINITY = 1_000_000_000_000;
 
     private const long MATERIAL_MULTIPLIER = 1_000_000;
-    private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 2_000;
+    private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 10_000;
     private const long PENALTY_PER_ENEMY_MOVE = 1_000_000;
     private const long MAX_MOVE_VALUE_NOISE = 10_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
