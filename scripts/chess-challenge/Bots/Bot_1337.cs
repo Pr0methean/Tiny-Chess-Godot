@@ -124,7 +124,7 @@ public class Bot_1337 : IChessBot {
             // Don't store in mateOrDrawCache, because Board's repetition rule is 2-fold while Arbiter's is 3-fold
             long baseScore = EvaluateMaterial(board);
             if (board.IsInCheck()) {
-                baseScore -= CHECK_PENALTY;
+                baseScore += CHECK_PENALTY * (board.IsWhiteToMove ? -1 : 1);
             }    
             score = evaluateDraw(baseScore);
             goto cacheStore;
