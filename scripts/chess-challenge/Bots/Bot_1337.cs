@@ -88,7 +88,7 @@ public class Bot_1337 : IChessBot {
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
                 bestMove = move;
-                if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
+                if (move.IsCapture || move.IsPromotion) {
                     bestMoveMonotonicKey = monotonicKey(board);
                 }
             }
