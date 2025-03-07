@@ -18,6 +18,7 @@ do {
     IChessBot botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
     Debug.WriteLine("Chosen move: " + move);
+    apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
 } while (!Bot_1337.endgamePositions.Contains(board.ZobristKey) || Arbiter.GetGameState(board) == GameResult.InProgress);
