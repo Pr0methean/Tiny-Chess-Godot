@@ -112,7 +112,7 @@ public class Bot_1337 : IChessBot {
         ulong blackPawnsBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
         ulong pawnsBitboard = whitePawnsBitboard | blackPawnsBitboard;
         ulong backHalfPawnsBitboard =
-            (whitePawnsBitboard & 0xffffffff00000000) | (blackPawnsBitboard & 0x00000000ffffffff);
+            (whitePawnsBitboard & 0x00000000ffffffff) | (blackPawnsBitboard & 0xffffffff00000000);
         int numPawns = BitOperations.PopCount(pawnsBitboard);
         int numBackHalfPawns = BitOperations.PopCount(backHalfPawnsBitboard);
         int numPiecesPromotableTo = BitOperations.PopCount(board.AllPiecesBitboard) - numPawns - 2;
