@@ -27,7 +27,7 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-    if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
+    if (move.IsCapture || move.IsPromotion) {
         monotonicKey = Bot_1337.currentMonotonicKey;
     }
     if (Bot_1337.mateOrDrawCache[monotonicKey].ContainsKey(board.ZobristKey)) {
@@ -35,9 +35,6 @@ do {
         result = Arbiter.GetGameState(board);
     } else if (Arbiter.isThreefoldRepetition(board)) {
         result = GameResult.Repetition;
-    }
-    if (result == GameResult.InProgress && (move.IsCapture || move.MovePieceType == PieceType.Pawn)) {
-        monotonicKey = Bot_1337.currentMonotonicKey;
     }
 } while (result == GameResult.InProgress);
 Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));

@@ -9,7 +9,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private static int MAX_MONOTONIC_KEY = 14 | (16 << 4);
+    public static int MAX_MONOTONIC_KEY = 14 | (16 << 4);
     private const byte QUIET_DEPTH = 2;
     private const long INFINITY = 1_000_000_000_000;
 
@@ -80,17 +80,17 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
-        int bestMoveMotonicKey = MAX_MONOTONIC_KEY;
+        int bestMoveMonotonicKey = MAX_MONOTONIC_KEY;
         foreach (var move in legalMoves) {
             board.MakeMove(move);
-            int monotonicKey = monoticKey(board);
+            int monotonicKey = Bot_1337.monotonicKey(board);
             long value = -AlphaBeta(board, QUIET_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
             
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
                 bestMove = move;
-                bestMoveMotonicKey = monotonicKey;
+                bestMoveMonotonicKey = monotonicKey;
             }
         }
 
@@ -106,7 +106,7 @@ public class Bot_1337 : IChessBot {
         return bestMove;
     }
 
-    public static int monoticKey(Board board) {
+    public static int monotonicKey(Board board) {
         ulong pawnsBitboard = board.GetPieceBitboard(PieceType.Pawn, true) | board.GetPieceBitboard(PieceType.Pawn, false);
         int numPawns = BitOperations.PopCount(pawnsBitboard);
         int numPiecesPromotableTo = BitOperations.PopCount(board.AllPiecesBitboard) - numPawns - 2;
@@ -115,7 +115,7 @@ public class Bot_1337 : IChessBot {
 
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
-        int monotonicKey = monoticKey(board);
+        int monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
         if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && entry.Depth >= quietDepth) {
             if (entry.NodeType == EXACT) return entry.Score;
@@ -231,7 +231,7 @@ public class Bot_1337 : IChessBot {
 
     // Positive favors white. Cache shared between both sides.
     private static long EvaluateMaterial(Board board) {
-        int monotonicKey = monoticKey(board);
+        int monotonicKey = Bot_1337.monotonicKey(board);
         return materialEvalCache[monotonicKey].GetOrCreate(board.ZobristKey, () => {
             // Material and basic position evaluation
             long evaluation = 0;
