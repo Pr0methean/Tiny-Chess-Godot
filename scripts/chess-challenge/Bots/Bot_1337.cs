@@ -10,7 +10,8 @@ using ChessChallenge.API;
 public class Bot_1337 : IChessBot {
     private const byte MAX_DEPTH = 4;
     private const long INFINITY = 1_000_000_000_000;
-    
+
+    private const long MATERIAL_MULTIPLIER = 1_000_000;
     private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
     private const long PENALTY_PER_ENEMY_MOVE = 1_000_000;
     private const long MAX_MOVE_VALUE_NOISE = 10_000;
@@ -22,12 +23,12 @@ public class Bot_1337 : IChessBot {
     private const long MAX_DRAW_VALUE_WHEN_BEHIND = 2 * MIN_DRAW_VALUE_WHEN_BEHIND;
     // private const long CHECK_BONUS = 1_000_000;
     // private const long CASTLING_BONUS = 2_000_000;
-    private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
+    private static readonly long[] PIECE_VALUES = [0, 100, 305, 333, 563, 950, 0];
     private static readonly long[] PIECE_RANK_PUSH_VALUES = [0, 400, 400, 800, 1200, 1600, 400];
     private static readonly long[] PIECE_FILE_PUSH_VALUES = [0, 100, 500, 400, 600, 1200, 300];
     private static readonly long[] PIECE_SWARM_VALUES = [0, 75, 150, 300, 400, 450, 200];
-    private static readonly long[] WHITE_PASSED_PAWN_VALUES = [0, 0, 0, 0, 16_000_000, 64_000_000, 128_000_000, 0];
-    private static readonly long[] BLACK_PASSED_PAWN_VALUES = [0, 128_000_000, 64_000_000, 16_000_000, 0, 0, 0, 0];
+    private static readonly long[] WHITE_PASSED_PAWN_VALUES = [0, 0, 0, 0, 16, 64, 128, 128];
+    private static readonly long[] BLACK_PASSED_PAWN_VALUES = [128, 128, 64, 16, 0, 0, 0, 0];
     private static readonly long[] FILE_CENTER_DISTANCE_VALUES = [6, 3, 1, 0, 0, 1, 3, 6];
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
@@ -122,10 +123,10 @@ public class Bot_1337 : IChessBot {
         // Check this after GetLegalMoves, so that IsInCheck hits cache
         if (board.IsRepeatedPosition()) {
             // Don't store in mateOrDrawCache, because Board's repetition rule is 2-fold while Arbiter's is 3-fold
-            long baseScore = EvaluateMaterial(board);
+            long baseScore = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
             if (board.IsInCheck()) {
                 baseScore += CHECK_PENALTY * (board.IsWhiteToMove ? -1 : 1);
-            }    
+            }
             score = evaluateDraw(baseScore);
             goto cacheStore;
         }
@@ -175,7 +176,7 @@ public class Bot_1337 : IChessBot {
 
     // Positive favors white
     private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
-        var evaluation = EvaluateMaterial(board);
+        var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
         // Check penalty
         if (board.IsInCheck()) {
