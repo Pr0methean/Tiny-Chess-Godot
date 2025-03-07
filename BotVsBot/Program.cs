@@ -29,6 +29,7 @@ do {
     board.MakeMove(new Move(move.RawValue), false);
     if (move.IsCapture || move.IsPromotion) {
         monotonicKey = Bot_1337.currentMonotonicKey;
+        GC.Collect();
     }
     if (Bot_1337.mateOrDrawCache[monotonicKey].ContainsKey(board.ZobristKey)) {
         // Handles false positives due to Zobrist collisions
