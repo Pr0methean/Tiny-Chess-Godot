@@ -49,6 +49,7 @@ public class Bot_1337 : IChessBot {
     
     private static Dictionary<ulong, long> basicEvalCache = new();
     private Dictionary<ulong, CacheEntry> alphaBetaCache = new();
+    public Dictionary<ulong, long> mateOrDrawCache = new();
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -88,8 +89,20 @@ public class Bot_1337 : IChessBot {
             if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
             if (alpha >= beta) return entry.Score;
         }
-
         long score;
+        if (mateOrDrawCache.TryGetValue(key, out score)) {
+            goto cacheStore;
+        }
+        if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) {
+            score = evaluateDraw(EvaluateBasicPosition(board));
+            mateOrDrawCache[key] = score;
+            goto cacheStore;
+        }
+        if (board.IsRepeatedPosition()) {
+            // Don't store in mateOrDrawCache, because Board's repetition rule is 2-fold while Arbiter's is 3-fold
+            score = evaluateDraw(EvaluateBasicPosition(board));
+            goto cacheStore;
+        }
         var legalMoves = board.GetLegalMoves();
         if (legalMoves.Length == 0) {
             if (board.IsInCheck()) {
@@ -99,11 +112,14 @@ public class Bot_1337 : IChessBot {
                 // Stalemate
                 score = evaluateDraw(EvaluateBasicPosition(board));
             }
-        } else if (board.IsInsufficientMaterial() || board.IsRepeatedPosition() || board.IsFiftyMoveDraw()) {
-            score = evaluateDraw(EvaluateBasicPosition(board));
-        } else if (depth == 0) {
+            mateOrDrawCache[key] = score;
+            goto cacheStore;
+        }
+        if (depth == 0) {
             score = EvaluatePosition(board);
-        } else if (maximizingPlayer) {
+            goto cacheStore;
+        }
+        if (maximizingPlayer) {
             score = -INFINITY;
             foreach (var move in legalMoves) {
                 board.MakeMove(move);
@@ -131,6 +147,7 @@ public class Bot_1337 : IChessBot {
             }
         }
         // Cache store
+        cacheStore:
         var nodeType = score <= alpha ? UPPERBOUND : 
             score >= beta ? LOWERBOUND : EXACT;
 
