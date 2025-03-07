@@ -15,7 +15,7 @@ public class Bot_1337 : IChessBot {
     private const long PENALTY_PER_ENEMY_MOVE = 1_000_000;
     private const long MIN_DRAW_VALUE_WHEN_BEHIND = 0;
     private const long MAX_DRAW_VALUE_WHEN_BEHIND = 900_000_000;
-    private const long MAX_MOVE_VALUE_NOISE = 1_000;
+    private const long MAX_MOVE_VALUE_NOISE = 10_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 1_000_000_000;
     // private const long CHECK_BONUS = 1_000_000;
@@ -73,6 +73,7 @@ public class Bot_1337 : IChessBot {
             board.MakeMove(move);
             long value = -AlphaBeta(board, MAX_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
+            value += noise();
             
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
@@ -134,7 +135,6 @@ public class Bot_1337 : IChessBot {
             foreach (var move in legalMoves) {
                 board.MakeMove(move);
                 long eval = AlphaBeta(board, (byte) (depth - 1), alpha, beta, false);
-                eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                 board.UndoMove(move);
 
                 score = Math.Max(score, eval);
@@ -147,7 +147,6 @@ public class Bot_1337 : IChessBot {
             foreach (var move in legalMoves) {
                 board.MakeMove(move);
                 long eval = AlphaBeta(board, (byte) (depth - 1), alpha, beta, true);
-                eval += random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
                 board.UndoMove(move);
 
                 score = Math.Min(score, eval);
@@ -166,7 +165,11 @@ public class Bot_1337 : IChessBot {
         );
         return score;
     }
-    
+
+    private static long noise() {
+        return random.NextInt64(MAX_MOVE_VALUE_NOISE) - random.NextInt64(MAX_MOVE_VALUE_NOISE);
+    }
+
     // Positive favors the player to move
     private long EvaluatePosition(Board board) { 
         var evaluation = EvaluateMaterial(board);
@@ -300,6 +303,11 @@ public class Bot_1337 : IChessBot {
     
     private static bool isBareKing(ulong bitboard) {
         return (bitboard & (bitboard - 1)) == 0;
+    }
+
+    // Adjustments that need to consider the move rather than the position
+    private static long getMiscMoveAdjustments(Move move) {
+        
     }
 }
 
