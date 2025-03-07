@@ -67,7 +67,7 @@ public class Bot_1337 : IChessBot {
         // [Seb tweak end]
         Move bestMove = Move.NullMove;
         long bestValue = long.MinValue;
-        var legalMoves = new Span<Move>(new Move[128]);
+        Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         
         foreach (var move in legalMoves) {
@@ -104,7 +104,7 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
 
-        var legalMoves = new Span<Move>(new Move[128]);
+        Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
             if (board.IsInCheck()) {
@@ -178,7 +178,7 @@ public class Bot_1337 : IChessBot {
         bool isWhite = board.IsWhiteToMove;
         evaluation *= (isWhite ? 1 : -1);
 
-        var legalMoves = new Span<Move>(new Move[128]);
+        Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         // Check penalty
         if (board.IsInCheck()) {
