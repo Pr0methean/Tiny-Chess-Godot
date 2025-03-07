@@ -19,7 +19,7 @@ public class Bot_1337 : IChessBot {
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 1_000_000_000;
     // private const long CHECK_BONUS = 1_000_000;
-    // private const long CASTLING_BONUS = 2_000_000;
+    private const long CASTLING_RIGHT_VALUE = 2_000_000;
     private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
     private static readonly long[] PIECE_RANK_PUSH_VALUES = [0, 400, 400, 800, 1200, 1600, 400];
     private static readonly long[] PIECE_FILE_PUSH_VALUES = [0, 100, 500, 400, 600, 1200, 300];
@@ -221,7 +221,18 @@ public class Bot_1337 : IChessBot {
 
                 Debug.WriteLine("Material eval: {0}", evaluation);
             }
-
+            if (board.HasKingsideCastleRight(true)) {
+                evaluation += CASTLING_RIGHT_VALUE;
+            }
+            if (board.HasQueensideCastleRight(true)) {
+                evaluation += CASTLING_RIGHT_VALUE;
+            }
+            if (board.HasKingsideCastleRight(false)) {
+                evaluation -= CASTLING_RIGHT_VALUE;
+            }
+            if (board.HasQueensideCastleRight(false)) {
+                evaluation -= CASTLING_RIGHT_VALUE;
+            }
             return evaluation;
         });
     }
