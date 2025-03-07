@@ -8,13 +8,12 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const byte MAX_DEPTH = 4;
+    private const byte QUIET_DEPTH = 3;
     private const long INFINITY = 1_000_000_000_000;
 
     private const long MATERIAL_MULTIPLIER = 1_000_000;
-    private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 10_000;
-    private const long PENALTY_PER_ENEMY_MOVE = 1_000_000;
-    private const long MAX_MOVE_VALUE_NOISE = 10_000;
+    private const long MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER = 20_000;
+    private const long VALUE_PER_AVAILABLE_MOVE = 1_000_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 1_000_000_000;
 
@@ -74,7 +73,7 @@ public class Bot_1337 : IChessBot {
         
         foreach (var move in legalMoves) {
             board.MakeMove(move);
-            long value = -AlphaBeta(board, MAX_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
+            long value = -AlphaBeta(board, QUIET_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
             
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
@@ -129,34 +128,36 @@ public class Bot_1337 : IChessBot {
             score = evaluateDraw(baseScore);
             goto cacheStore;
         }
-        if (depth == 0) {
-            score = EvaluatePosition(board, legalMoves);
-            goto cacheStore;
-        }
-        if (maximizingPlayer) {
-            score = -INFINITY;
-            foreach (var move in legalMoves) {
-                board.MakeMove(move);
-                long eval = AlphaBeta(board, (byte) (depth - 1), alpha, beta, false);
-                board.UndoMove(move);
 
+        boolean foundNonQuietMove = false;
+        score = maximizingPlayer ? -INFINITY : INFINITY;
+        foreach (var move in legalMoves) {
+            byte nextDepth;
+            if (move.IsCapture || move.IsPromotion) {
+                nextDepth = depth;
+                foundNonQuietMove = true;
+            }
+            else {
+                if (depth == 0) {
+                    continue;
+                }
+                nextDepth = (byte) (depth - 1);
+            }
+            board.MakeMove(move);
+            long eval = AlphaBeta(board, nextDepth, alpha, beta, false);
+            board.UndoMove(move);
+            if (maximizingPlayer) {
                 score = Math.Max(score, eval);
                 alpha = Math.Max(alpha, eval);
-                if (beta <= alpha)
-                    break;
-            }
-        } else {
-            score = INFINITY;
-            foreach (var move in legalMoves) {
-                board.MakeMove(move);
-                long eval = AlphaBeta(board, (byte) (depth - 1), alpha, beta, true);
-                board.UndoMove(move);
-
+            } else {
                 score = Math.Min(score, eval);
                 beta = Math.Min(beta, eval);
-                if (beta <= alpha)
-                    break;
             }
+            if (beta <= alpha)
+                break;
+        }
+        if (depth == 0 && !foundNonQuietMove) {
+            score = EvaluatePosition(board, legalMoves);
         }
         // Cache store
         cacheStore:
@@ -183,11 +184,11 @@ public class Bot_1337 : IChessBot {
         evaluation += CalculateSwarmAndPushBonus(board);
 
         // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
-        evaluation += opptMovesScore(legalMoves) * (isWhite ? 1 : -1);
+        evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length;
         if (board.TrySkipTurn()) {
             Span<Move> opponentLegalMoves = stackalloc Move[128];
             board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
-            evaluation -= opptMovesScore(opponentLegalMoves) * (isWhite ? 1 : -1);
+            evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length;
             board.UndoSkipTurn();
         }
 
@@ -264,16 +265,6 @@ public class Bot_1337 : IChessBot {
         }
         
         return bonus;
-    }
-
-    private static long opptMovesScore(Span<Move> responses) {
-        long minOpptMovesScore = 0;
-        foreach (var move in responses) {
-            minOpptMovesScore += PENALTY_PER_ENEMY_MOVE
-                                 + PIECE_VALUES[(int)move.CapturePieceType] *
-                                 MY_PIECE_VALUE_PER_CAPTURING_MOVE_MULTIPLIER;
-        }
-        return minOpptMovesScore;
     }
     
     private static long evaluateDraw(long materialEval) {
