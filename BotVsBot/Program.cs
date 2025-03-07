@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using auto_Bot_1337;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
@@ -20,7 +21,7 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-    if (Bot_1337.mateOrDrawCache.ContainsKey(board.ZobristKey)) {
+    if (Bot_1337.mateOrDrawCache[BitOperations.PopCount(apiBoard.AllPiecesBitboard) - 2].ContainsKey(board.ZobristKey)) {
         // Handles false positives due to Zobrist collisions
         result = Arbiter.GetGameState(board);
     } else if (Arbiter.isThreefoldRepetition(board)) {
