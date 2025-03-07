@@ -20,7 +20,7 @@ public class Bot_1337 : IChessBot {
     private const long ENEMY_CHECK_BONUS = 1_000_000_000;
     // private const long CHECK_BONUS = 1_000_000;
     // private const long CASTLING_BONUS = 2_000_000;
-    private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 20_000_000_000];
+    private static readonly long[] PIECE_VALUES = [0, 100_000_000, 305_000_000, 333_000_000, 563_000_000, 950_000_000, 0];
     private static readonly long[] PIECE_RANK_PUSH_VALUES = [0, 400, 400, 800, 1200, 1600, 400];
     private static readonly long[] PIECE_FILE_PUSH_VALUES = [0, 100, 500, 400, 600, 1200, 300];
     private static readonly long[] PIECE_SWARM_VALUES = [0, 75, 150, 300, 400, 450, 200];
@@ -34,6 +34,9 @@ public class Bot_1337 : IChessBot {
     private const byte EXACT = 0;
     private const byte LOWERBOUND = 1;
     private const byte UPPERBOUND = 2;
+
+    private const long BARE_KING_EVAL = 100_000_000_000L;
+
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private readonly struct CacheEntry {
@@ -157,6 +160,7 @@ public class Bot_1337 : IChessBot {
         return score;
     }
     
+    // Positive favors the player to move
     private long EvaluatePosition(Board board) { 
         var evaluation = EvaluateBasicPosition(board);
         bool isWhite = board.IsWhiteToMove;
@@ -181,11 +185,11 @@ public class Bot_1337 : IChessBot {
             long evaluation = 0;
             if (isBareKing(board.WhitePiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: white is a bare king!");
-                evaluation = 100_000_000_000L;
+                evaluation = BARE_KING_EVAL;
             }
             else if (isBareKing(board.BlackPiecesBitboard)) {
                 Debug.WriteLine("Skipping material evaluation: black is a bare king!");
-                evaluation = -100_000_000_000L;
+                evaluation = -BARE_KING_EVAL;
             }
             else {
                 for (int square = 0; square < 64; square++) {
@@ -258,11 +262,11 @@ public class Bot_1337 : IChessBot {
     }
     
     private static long evaluateDraw(long materialEval) {
-        if (materialEval >= 100_000_000_000) {
+        if (materialEval >= BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
             return 900_000_000_000L;
         }
-        if (materialEval <= -100_000_000_000) {
+        if (materialEval <= -BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
             return -900_000_000_000L;
         }
