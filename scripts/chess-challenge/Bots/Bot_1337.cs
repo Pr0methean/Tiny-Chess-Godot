@@ -53,9 +53,9 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Dictionary<ulong, long>[] materialEvalCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
-    private static Dictionary<ulong, CacheEntry>[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[MAX_MONOTONIC_KEY + 1];
-    public static Dictionary<ulong, long>[] mateOrDrawCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
+    private static Dictionary<ulong, long>?[] materialEvalCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
+    private static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[MAX_MONOTONIC_KEY + 1];
+    public static Dictionary<ulong, long>?[] mateOrDrawCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
     private int prevMonotonicKey = MAX_MONOTONIC_KEY;
 
     static Bot_1337() {
@@ -97,9 +97,9 @@ public class Bot_1337 : IChessBot {
 
         if (bestMoveMonotonicKey < prevMonotonicKey) {
             for (int i = bestMoveMonotonicKey + 1; i <= prevMonotonicKey; i++) {
-                materialEvalCache[i].Clear();
-                alphaBetaCache[i].Clear();
-                mateOrDrawCache[i].Clear();
+                materialEvalCache[i] = null;
+                alphaBetaCache[i] = null;
+                mateOrDrawCache[i] = null;
             }
             prevMonotonicKey = bestMoveMonotonicKey;
             GC.Collect();
