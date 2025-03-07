@@ -28,6 +28,9 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
+    if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
+        monotonicKey = Bot_1337.currentMonotonicKey;
+    }
     if (Bot_1337.mateOrDrawCache[monotonicKey].ContainsKey(board.ZobristKey)) {
         // Handles false positives due to Zobrist collisions
         result = Arbiter.GetGameState(board);
