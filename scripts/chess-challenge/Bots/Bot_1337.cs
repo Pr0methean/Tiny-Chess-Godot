@@ -200,7 +200,7 @@ public class Bot_1337 : IChessBot {
     }
 
     private static bool isUnquietMove(Move move) {
-        return move.IsCapture || move.IsPromotion;
+        return move.IsCapture || move.MovePieceType == PieceType.Pawn;
     }
 
     // Positive favors white
