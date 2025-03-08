@@ -121,7 +121,7 @@ public class Bot_1337 : IChessBot {
         const ulong entriesToDropBeforeManualGc = 1 << 22;
         if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
             GC.Collect(GC.MaxGeneration, 
-                GCCollectionMode.Default, 
+                GCCollectionMode.Optimized, 
                 false, 
                 true);
             trimmedCacheEntries = 0;
