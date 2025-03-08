@@ -6,7 +6,7 @@ using System.Linq;
 public static class TinyOpeningBook
 {
     static Random rng = new();
-    static Dictionary<string, string[]> book;
+    static Dictionary<string, string[]>? book;
 
     static TinyOpeningBook()
     {
@@ -15,6 +15,9 @@ public static class TinyOpeningBook
 
     public static Move TryGetMove(Board board, double randomlyDontUseBookProb = 0)
     {
+        if (book == null) {
+            return Move.NullMove;
+        }
         string fen = board.GetFenString();
         string[] fenSections = fen.Split(' ');
         string bookFen = fenSections[0] + " " + fenSections[1] + " " + fenSections[2] + " " + fenSections[3];
@@ -42,4 +45,7 @@ public static class TinyOpeningBook
         return Move.NullMove;
     }
 
+    public static void unload() {
+        book = null;
+    }
 }

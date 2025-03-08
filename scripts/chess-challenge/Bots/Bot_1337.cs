@@ -73,6 +73,10 @@ public class Bot_1337 : IChessBot {
             }
         }
 
+        if (board.PlyCount == 32) {
+            TinyOpeningBook.unload();
+        }
+
         // [Seb tweak end]
         Move bestMove = Move.NullMove;
         long bestValue = long.MinValue;
