@@ -39,11 +39,11 @@ public class Bot_1337 : IChessBot {
     private const byte LOWERBOUND = 1;
     private const byte UPPERBOUND = 2; 
     private const long BARE_KING_EVAL = 100_000_000_000L;
-    private static ulong trimmedCacheDataEstimated = 0;
+    private static ulong trimmedCacheEntries = 0;
 
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    private readonly struct CacheEntry {
+    public readonly struct CacheEntry {
         public readonly long Score;
         public readonly byte QuietDepth;
         public readonly byte TotalDepth;
@@ -56,14 +56,12 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
-    public static HashSet<ulong>?[] knownEndgamePositions = new HashSet<ulong>?[MAX_MONOTONIC_KEY + 1];
+    public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     static Bot_1337() {
         for (int i = 0; i <= MAX_MONOTONIC_KEY; i++) {
             alphaBetaCache[i] = new Dictionary<ulong, CacheEntry>();
-            knownEndgamePositions[i] = new HashSet<ulong>();
         }
     }
     
@@ -98,22 +96,19 @@ public class Bot_1337 : IChessBot {
     public static void trimCache(int newCurrentMonotonicKey) {
         if (currentMonotonicKey < newCurrentMonotonicKey) {
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-                // In alphaBetaCache: 
-                // - 1 4-byte word for object header
-                // - 2 words for ulong key
-                // - 5 words for value since it's Pack(8)
-                // In knownEndgamePositions:
-                // - 1 4-byte word for object header
-                // - 2 words for ulong key
-                trimmedCacheDataEstimated += 8 * (ulong) alphaBetaCache[i].Count
-                                       + 3 * (ulong) knownEndgamePositions[i].Count;
+                trimmedCacheEntries += (ulong) alphaBetaCache[i].Count;
                 alphaBetaCache[i] = null;
-                knownEndgamePositions[i] = null;
             }
             currentMonotonicKey = newCurrentMonotonicKey;
-            if (trimmedCacheDataEstimated > 1 << 28) {
+            if (trimmedCacheEntries > 1 << 27) {
+                // In alphaBetaCache: 
+                // - 4 bytes for object header
+                // - 8 bytes for ulong key
+                // - ~20 bytes for value since it's Pack(8)
+                // -> 32 bytes total
+                // so each GC should free ~1GiB
                 GC.Collect();
-                trimmedCacheDataEstimated = 0;
+                trimmedCacheEntries = 0;
             }
         }
     }
@@ -157,7 +152,6 @@ public class Bot_1337 : IChessBot {
         bool storeEndgame = false;
         if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) {
             score = evaluateDraw(EvaluateMaterial(board));
-            knownEndgamePositions[monotonicKey].Add(key);
             storeEndgame = true;
             goto cacheStore;
         }
@@ -171,7 +165,6 @@ public class Bot_1337 : IChessBot {
                 // Stalemate
                 score = evaluateDraw(EvaluateMaterial(board));
             }
-            knownEndgamePositions[monotonicKey].Add(key);
             storeEndgame = true;
             goto cacheStore;
         }
