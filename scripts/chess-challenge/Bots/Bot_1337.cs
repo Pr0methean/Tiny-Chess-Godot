@@ -100,13 +100,13 @@ public class Bot_1337 : IChessBot {
                 alphaBetaCache[i] = null;
             }
             currentMonotonicKey = newCurrentMonotonicKey;
-            if (trimmedCacheEntries > 1 << 27) {
+            if (trimmedCacheEntries > 1 << 26) {
                 // In alphaBetaCache: 
                 // - 4 bytes for object header
                 // - 8 bytes for ulong key
                 // - ~20 bytes for value since it's Pack(8)
-                // -> 32 bytes total
-                // so each GC should free ~1GiB
+                // -> 32 (1 << 5) bytes total
+                // so each GC should free ~1GiB (1 << 3` bytes)
                 GC.Collect();
                 trimmedCacheEntries = 0;
             }
