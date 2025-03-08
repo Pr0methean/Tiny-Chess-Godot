@@ -182,19 +182,19 @@ public class Bot_1337 : IChessBot {
         score = maximizingPlayer ? -INFINITY : INFINITY;
         if (totalDepth > 0) {
             foreach (var move in legalMoves) {
-                byte nextDepth;
+                byte nextQuietDepth;
                 if (isUnquietMove(move)) {
-                    nextDepth = quietDepth;
+                    nextQuietDepth = (byte) Math.Min(quietDepth, totalDepth - 1);
                     foundNonQuietMove = true;
                 }
                 else {
                     if (quietDepth == 0) {
                         continue;
                     }
-                    nextDepth = (byte) (quietDepth - 1);
+                    nextQuietDepth = (byte) (quietDepth - 1);
                 }
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, nextDepth, (byte) (totalDepth - 1), alpha, beta, false);
+                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, false);
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
@@ -210,6 +210,12 @@ public class Bot_1337 : IChessBot {
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
             score = EvaluatePosition(board, monotonicKey, legalMoves);
         }
+
+        if (score < alpha) {
+            score = alpha;
+        } else if (score > beta) {
+            score = beta;
+        }
         // Cache store
         cacheStore:
         long lowerBound = (score >= beta) ? score : -INFINITY;
@@ -223,6 +229,17 @@ public class Bot_1337 : IChessBot {
             totalDepth = Math.Min(existing.TotalDepth, totalDepth);
             lowerBound = Math.Max(lowerBound, existing.LowerBound);
             upperBound = Math.Min(upperBound, existing.UpperBound);
+            if (lowerBound > upperBound) {
+                if (totalDepth > existing.TotalDepth || (totalDepth == existing.TotalDepth && quietDepth > existing.QuietDepth)) {
+                    // Deeper search is correct
+                    lowerBound = score;
+                    upperBound = score;
+                }
+                else {
+                    // Don't write to cache if a deeper search contradicts us
+                    return score;
+                }
+            }
         }
         alphaBetaCache[monotonicKey][key] = new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth);
         return score;
