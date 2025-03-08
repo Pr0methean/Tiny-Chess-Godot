@@ -30,7 +30,7 @@ do {
             oldMonotonicKey = monotonicKey;
         }
     }
-    if (Bot_1337.mateOrDrawCache[monotonicKey].ContainsKey(board.ZobristKey)) {
+    if (Bot_1337.knownEndgamePositions[monotonicKey].Contains(board.ZobristKey)) {
         // Handles false positives due to Zobrist collision
         result = Arbiter.GetGameState(board);
     } else if (Arbiter.isThreefoldRepetition(board)) {

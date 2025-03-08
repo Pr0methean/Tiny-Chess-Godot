@@ -56,14 +56,14 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[MAX_MONOTONIC_KEY + 1];
-    public static Dictionary<ulong, long>?[] mateOrDrawCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
+    private static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
+    public static HashSet<ulong>?[] knownEndgamePositions = new HashSet<ulong>?[MAX_MONOTONIC_KEY + 1];
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     static Bot_1337() {
         for (int i = 0; i <= MAX_MONOTONIC_KEY; i++) {
             alphaBetaCache[i] = new Dictionary<ulong, CacheEntry>();
-            mateOrDrawCache[i] = new Dictionary<ulong, long>();
+            knownEndgamePositions[i] = new HashSet<ulong>();
         }
     }
     
@@ -98,10 +98,10 @@ public class Bot_1337 : IChessBot {
     public static void trimCache(int newCurrentMonotonicKey) {
         if (currentMonotonicKey < newCurrentMonotonicKey) {
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-                trimmedCacheEntries += 2 * (ulong) alphaBetaCache[i].Count
-                                       + (ulong) mateOrDrawCache[i].Count;
+                trimmedCacheEntries += 3 * (ulong) alphaBetaCache[i].Count
+                                       + (ulong) knownEndgamePositions[i].Count;
                 alphaBetaCache[i] = null;
-                mateOrDrawCache[i] = null;
+                knownEndgamePositions[i] = null;
             }
             currentMonotonicKey = newCurrentMonotonicKey;
             if (trimmedCacheEntries > 1 << 27) {
@@ -147,15 +147,13 @@ public class Bot_1337 : IChessBot {
             if (alpha >= beta) return entry.Score;
         }
         long score;
-        if (mateOrDrawCache[monotonicKey].TryGetValue(key, out score)) {
-            goto cacheStore;
-        }
+        bool storeEndgame = false;
         if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) {
             score = evaluateDraw(EvaluateMaterial(board));
-            mateOrDrawCache[monotonicKey][key] = score;
+            knownEndgamePositions[monotonicKey].Add(key);
+            storeEndgame = true;
             goto cacheStore;
         }
-
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
@@ -166,18 +164,19 @@ public class Bot_1337 : IChessBot {
                 // Stalemate
                 score = evaluateDraw(EvaluateMaterial(board));
             }
-            mateOrDrawCache[monotonicKey][key] = score;
+            knownEndgamePositions[monotonicKey].Add(key);
+            storeEndgame = true;
             goto cacheStore;
         }
         
         // Check this after GetLegalMoves, so that IsInCheck hits cache
         if (board.IsRepeatedPosition()) {
-            // Don't store in mateOrDrawCache, because Board's repetition rule is 2-fold while Arbiter's is 3-fold
             long baseScore = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
             if (board.IsInCheck()) {
                 baseScore += CHECK_PENALTY * (board.IsWhiteToMove ? -1 : 1);
             }
             score = evaluateDraw(baseScore);
+            storeEndgame = true;
             goto cacheStore;
         }
 
@@ -217,6 +216,11 @@ public class Bot_1337 : IChessBot {
         cacheStore:
         var nodeType = score <= alpha ? UPPERBOUND : 
             score >= beta ? LOWERBOUND : EXACT;
+        if (storeEndgame) {
+            // If a state is terminal, the path length leading to it doesn't matter
+            quietDepth = byte.MaxValue;
+            totalDepth = byte.MaxValue;
+        }
 
         alphaBetaCache[monotonicKey][key] = new CacheEntry(
             score, quietDepth, totalDepth, nodeType
