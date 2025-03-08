@@ -111,10 +111,15 @@ public class Bot_1337 : IChessBot {
             // - 8 bytes for ulong key
             // - ~20 bytes for value since it's Pack(8)
             // -> 32 (1 << 5) bytes total
-            // so each GC should free at least ~1GiB (1 << 30 bytes)
-            const ulong entriesToDropBeforeManualGc = 1 << 25;
+            // so each GC should free at least ~256 MiB (1 << 28 bytes)
+            // which should make a difference on my laptop, since it has 32 GiB and 12 CPU cores 
+            const ulong entriesToDropBeforeManualGc = 1 << 23;
+            const ulong aggressiveGcThreshold = entriesToDropBeforeManualGc * 2;
+            const ulong blockingGcThreshold = aggressiveGcThreshold * 2;
             if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, false, true);
+                GC.Collect(GC.MaxGeneration, 
+                    trimmedCacheEntries >= aggressiveGcThreshold ? GCCollectionMode.Aggressive : GCCollectionMode.Default,, 
+                    trimmedCacheEntries >= blockingGcThreshold, true);
                 trimmedCacheEntries = 0;
             }
         }
