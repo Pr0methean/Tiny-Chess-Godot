@@ -39,7 +39,7 @@ public class Bot_1337 : IChessBot {
     private const byte LOWERBOUND = 1;
     private const byte UPPERBOUND = 2; 
     private const long BARE_KING_EVAL = 100_000_000_000L;
-    private static ulong trimmedCacheEntries = 0;
+    private static ulong trimmedCacheDataEstimated = 0;
 
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -98,15 +98,22 @@ public class Bot_1337 : IChessBot {
     public static void trimCache(int newCurrentMonotonicKey) {
         if (currentMonotonicKey < newCurrentMonotonicKey) {
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-                trimmedCacheEntries += 3 * (ulong) alphaBetaCache[i].Count
-                                       + (ulong) knownEndgamePositions[i].Count;
+                // In alphaBetaCache: 
+                // - 1 4-byte word for object header
+                // - 2 words for ulong key
+                // - 5 words for value since it's Pack(8)
+                // In knownEndgamePositions:
+                // - 1 4-byte word for object header
+                // - 2 words for ulong key
+                trimmedCacheDataEstimated += 8 * (ulong) alphaBetaCache[i].Count
+                                       + 3 * (ulong) knownEndgamePositions[i].Count;
                 alphaBetaCache[i] = null;
                 knownEndgamePositions[i] = null;
             }
             currentMonotonicKey = newCurrentMonotonicKey;
-            if (trimmedCacheEntries > 1 << 27) {
+            if (trimmedCacheDataEstimated > 1 << 28) {
                 GC.Collect();
-                trimmedCacheEntries = 0;
+                trimmedCacheDataEstimated = 0;
             }
         }
     }
