@@ -9,7 +9,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = 6 * 16 + (6 * 16 + 1) * 30;
+    public static int MAX_MONOTONIC_KEY = 6 * 16 + (6 * 16 + 1) * 46;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -122,6 +122,7 @@ public class Bot_1337 : IChessBot {
     public static int monotonicKey(Board board) {
         ulong whitePawnBitboard = board.GetPieceBitboard(PieceType.Pawn, true);
         ulong blackPawnBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
+        int totalPawns = BitOperations.PopCount(whitePawnBitboard | blackPawnBitboard);
         ulong rank2PawnsBitboard = (whitePawnBitboard &   0x0000_0000_0000_ff00)
                                    | (blackPawnBitboard & 0x00ff_0000_0000_0000);
         ulong rank3PawnsBitboard = (whitePawnBitboard &   0x0000_0000_00ff_0000)
@@ -141,7 +142,7 @@ public class Bot_1337 : IChessBot {
             + 2 * BitOperations.PopCount(rank6PawnsBitboard)
             + 1 * BitOperations.PopCount(rank7PawnsBitboard);
         int nonKingPiecesTotal = BitOperations.PopCount(board.AllPiecesBitboard) - 2;
-        return pawnsKey + (6 * 16 + 1) * nonKingPiecesTotal;
+        return pawnsKey + (6 * 16 + 1) * (nonKingPiecesTotal + totalPawns);
     }
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
