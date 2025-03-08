@@ -43,17 +43,19 @@ public class Bot_1337 : IChessBot {
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public readonly record struct CacheEntry {
-        public readonly long Score;
-        public readonly byte QuietDepth;
-        public readonly byte TotalDepth;
-        public readonly byte NodeType;
-        public CacheEntry(long score, byte quietDepth, byte totalDepth, byte nodeType) {
-            Score = score;
+        public long LowerBound { get; }
+        public long UpperBound { get; }
+        public byte QuietDepth { get; }
+        public byte TotalDepth { get; }
+
+        public CacheEntry(long lowerBound, long upperBound, byte quietDepth, byte totalDepth, int nodeType) {
             QuietDepth = quietDepth;
-            NodeType = nodeType;
             TotalDepth = totalDepth;
+            LowerBound = lowerBound;
+            UpperBound = upperBound;
         }
     }
+
 
     public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
@@ -162,10 +164,11 @@ public class Bot_1337 : IChessBot {
         int monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
         if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && (entry.TotalDepth >= totalDepth || entry.QuietDepth >= quietDepth )) {
-            if (entry.NodeType == EXACT) return entry.Score;
-            if (entry.NodeType == LOWERBOUND) alpha = Math.Max(alpha, entry.Score);
-            if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
-            if (alpha >= beta) return entry.Score;
+            alpha = Math.Max(alpha, entry.LowerBound);
+            beta = Math.Min(beta, entry.UpperBound);
+        }
+        if (alpha >= beta) {
+            return maximizingPlayer ? beta : alpha;
         }
         long score;
         bool storeEndgame = false;
@@ -233,17 +236,19 @@ public class Bot_1337 : IChessBot {
         }
         // Cache store
         cacheStore:
-        var nodeType = score <= alpha ? UPPERBOUND : 
-            score >= beta ? LOWERBOUND : EXACT;
+        long lowerBound = (score >= beta) ? score : -INFINITY;
+        long upperBound = (score <= alpha) ? score : INFINITY;
         if (storeEndgame) {
             // If a state is terminal, the path length leading to it doesn't matter
             quietDepth = byte.MaxValue;
             totalDepth = byte.MaxValue;
+        } else if (alphaBetaCache[monotonicKey].TryGetValue(key, out var existing)) {
+            quietDepth = Math.Min(existing.QuietDepth, quietDepth);
+            totalDepth = Math.Min(existing.TotalDepth, totalDepth);
+            lowerBound = Math.Max(lowerBound, existing.LowerBound);
+            upperBound = Math.Min(upperBound, existing.UpperBound);
         }
-
-        alphaBetaCache[monotonicKey][key] = new CacheEntry(
-            score, quietDepth, totalDepth, nodeType
-        );
+        alphaBetaCache[monotonicKey][key] = new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth, EXACT);
         return score;
     }
 
