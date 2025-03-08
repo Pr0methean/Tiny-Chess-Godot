@@ -113,7 +113,6 @@ public class Bot_1337 : IChessBot {
     public static int monotonicKey(Board board) {
         ulong whitePawnBitboard = board.GetPieceBitboard(PieceType.Pawn, true);
         ulong blackPawnBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
-        int totalPawns = BitOperations.PopCount(whitePawnBitboard | blackPawnBitboard);
         ulong rank2PawnsKey = ((whitePawnBitboard & 0x0000_0000_0000_ff00) >> 8) 
                               + ((blackPawnBitboard & 0x00ff_0000_0000_0000) >> 48);
         ulong rank3PawnsKey = ((whitePawnBitboard &   0x0000_0000_00ff_0000) >> 16) 
@@ -126,12 +125,12 @@ public class Bot_1337 : IChessBot {
                               + ((blackPawnBitboard & 0x0000_0000_00ff_0000) >> 16);
         ulong rank7PawnsKey = ((whitePawnBitboard &   0x00ff_0000_0000_0000) >> 48) 
                               + ((blackPawnBitboard & 0x0000_0000_0000_ff00) >> 8);
-        int pawnsKey = (int) (6 * rank7PawnsKey
-                       + 5 * rank6PawnsKey
-                       + 4 * rank5PawnsKey
-                       + 3 * rank4PawnsKey
-                       + 2 * rank3PawnsKey
-                       + rank2PawnsKey);
+        int pawnsKey = (int) (6 * rank2PawnsKey
+                       + 5 * rank3PawnsKey
+                       + 4 * rank4PawnsKey
+                       + 3 * rank5PawnsKey
+                       + 2 * rank6PawnsKey
+                       + rank7PawnsKey);
         int nonKingPiecesTotal = BitOperations.PopCount(board.AllPiecesBitboard) - 2;
         return pawnsKey + (6 * 510 + 1) * nonKingPiecesTotal;
     }
