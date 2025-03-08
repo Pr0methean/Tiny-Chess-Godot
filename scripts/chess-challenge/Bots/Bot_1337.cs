@@ -56,14 +56,12 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Dictionary<ulong, long>?[] materialEvalCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
     private static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>[MAX_MONOTONIC_KEY + 1];
     public static Dictionary<ulong, long>?[] mateOrDrawCache = new Dictionary<ulong, long>[MAX_MONOTONIC_KEY + 1];
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     static Bot_1337() {
         for (int i = 0; i <= MAX_MONOTONIC_KEY; i++) {
-            materialEvalCache[i] = new Dictionary<ulong, long>();
             alphaBetaCache[i] = new Dictionary<ulong, CacheEntry>();
             mateOrDrawCache[i] = new Dictionary<ulong, long>();
         }
@@ -100,11 +98,9 @@ public class Bot_1337 : IChessBot {
     public static void trimCache(int newCurrentMonotonicKey) {
         if (currentMonotonicKey < newCurrentMonotonicKey) {
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-                trimmedCacheEntries += (ulong) materialEvalCache[i].Count
-                                       + 2 * (ulong) alphaBetaCache[i].Count
+                trimmedCacheEntries += 2 * (ulong) alphaBetaCache[i].Count
                                        + (ulong) mateOrDrawCache[i].Count;
                 alphaBetaCache[i] = null;
-                materialEvalCache[i] = null;
                 mateOrDrawCache[i] = null;
             }
             currentMonotonicKey = newCurrentMonotonicKey;
@@ -264,36 +260,33 @@ public class Bot_1337 : IChessBot {
 
     // Positive favors white. Cache shared between both sides.
     private static long EvaluateMaterial(Board board) {
-        int monotonicKey = Bot_1337.monotonicKey(board);
-        return materialEvalCache[monotonicKey].GetOrCreate(board.ZobristKey, () => {
-            // Material and basic position evaluation
-            long evaluation = 0;
-            if (isBareKing(board.WhitePiecesBitboard)) {
-                Debug.WriteLine("Skipping material evaluation: white is a bare king!");
-                evaluation = -BARE_KING_EVAL;
-            }
-            else if (isBareKing(board.BlackPiecesBitboard)) {
-                Debug.WriteLine("Skipping material evaluation: black is a bare king!");
-                evaluation = BARE_KING_EVAL;
-            }
-            else {
-                for (int square = 0; square < 64; square++) {
-                    Piece piece = board.GetPiece(SQUARES[square]);
-                    long pieceValue = PIECE_VALUES[(int)piece.PieceType]; 
-                    if (piece.IsPawn) {
-                        int rank = square >> 3;
-                        pieceValue += (piece.IsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
-                            [rank];
-                    }
-
-                    evaluation += pieceValue * (piece.IsWhite ? 1 : -1);
+        // Material and passed-pawn evaluation
+        long evaluation = 0;
+        if (isBareKing(board.WhitePiecesBitboard)) {
+            Debug.WriteLine("Skipping material evaluation: white is a bare king!");
+            evaluation = -BARE_KING_EVAL;
+        }
+        else if (isBareKing(board.BlackPiecesBitboard)) {
+            Debug.WriteLine("Skipping material evaluation: black is a bare king!");
+            evaluation = BARE_KING_EVAL;
+        }
+        else {
+            for (int square = 0; square < 64; square++) {
+                Piece piece = board.GetPiece(SQUARES[square]);
+                long pieceValue = PIECE_VALUES[(int)piece.PieceType]; 
+                if (piece.IsPawn) {
+                    int rank = square >> 3;
+                    pieceValue += (piece.IsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
+                        [rank];
                 }
 
-                Debug.WriteLine("Material eval: {0}", evaluation);
+                evaluation += pieceValue * (piece.IsWhite ? 1 : -1);
             }
 
-            return evaluation;
-        });
+            Debug.WriteLine("Material eval: {0}", evaluation);
+        }
+
+        return evaluation;
     }
 
     private long CalculateSwarmAndPushBonus(Board board) {
