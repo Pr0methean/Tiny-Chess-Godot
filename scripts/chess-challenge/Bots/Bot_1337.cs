@@ -9,7 +9,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = 14 + 16 * 15 + 16 * 15 * 17;
+    public static int MAX_MONOTONIC_KEY = 30 + 6 * 16 * 31;
     private const byte QUIET_DEPTH = 1;
     private const long INFINITY = 1_000_000_000_000;
 
@@ -109,13 +109,26 @@ public class Bot_1337 : IChessBot {
     public static int monotonicKey(Board board) {
         ulong whitePawnBitboard = board.GetPieceBitboard(PieceType.Pawn, true);
         ulong blackPawnBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
-        ulong backRankPawnsBitboard = (whitePawnBitboard &   0x0000_0000_00ff_ffff)
-                                      | (blackPawnBitboard & 0xffff_ff00_0000_0000);
-        ulong pawnsBitboard = whitePawnBitboard | blackPawnBitboard;
-        int numPawns = BitOperations.PopCount(pawnsBitboard);
-        int numBackRankPawns = BitOperations.PopCount(backRankPawnsBitboard);
-        int numPiecesPromotableTo = BitOperations.PopCount(board.AllPiecesBitboard) - numPawns - 2;
-        return numPiecesPromotableTo + numPawns * 15 + numBackRankPawns * 15 * 17;
+        ulong rank2PawnsBitboard = (whitePawnBitboard &   0x0000_0000_0000_ff00)
+                                   | (blackPawnBitboard & 0x00ff_0000_0000_0000);
+        ulong rank3PawnsBitboard = (whitePawnBitboard &   0x0000_0000_00ff_0000)
+                                   | (blackPawnBitboard & 0x0000_ff00_0000_0000);
+        ulong rank4PawnsBitboard = (whitePawnBitboard &   0x0000_0000_ff00_0000)
+                                   | (blackPawnBitboard & 0x0000_00ff_0000_0000);
+        ulong rank5PawnsBitboard = (whitePawnBitboard &   0x0000_00ff_0000_0000)
+                                   | (blackPawnBitboard & 0x0000_0000_ff00_0000);
+        ulong rank6PawnsBitboard = (whitePawnBitboard &   0x0000_ff00_0000_0000)
+                                   | (blackPawnBitboard & 0x0000_0000_00ff_0000);
+        ulong rank7PawnsBitboard = (whitePawnBitboard &   0x00ff_0000_0000_0000)
+                                   | (blackPawnBitboard & 0x0000_0000_0000_ff00);
+        int pawnsKey = 6 * BitOperations.PopCount(rank2PawnsBitboard)
+            + 5 * BitOperations.PopCount(rank3PawnsBitboard)
+            + 4 * BitOperations.PopCount(rank4PawnsBitboard)
+            + 3 * BitOperations.PopCount(rank5PawnsBitboard)
+            + 2 * BitOperations.PopCount(rank6PawnsBitboard)
+            + 1 * BitOperations.PopCount(rank7PawnsBitboard);
+        int nonKingPiecesTotal = BitOperations.PopCount(board.AllPiecesBitboard) - 2;
+        return nonKingPiecesTotal + pawnsKey * 31;
     }
 
     private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
