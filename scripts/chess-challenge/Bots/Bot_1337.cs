@@ -10,7 +10,7 @@ using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
     public static int MAX_MONOTONIC_KEY = 14 + 16 * 15;
-    private const byte QUIET_DEPTH = 2;
+    private const byte QUIET_DEPTH = 1;
     private const long INFINITY = 1_000_000_000_000;
 
     private const long MATERIAL_MULTIPLIER = 1_000_000;
