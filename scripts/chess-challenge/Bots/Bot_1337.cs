@@ -116,9 +116,9 @@ public class Bot_1337 : IChessBot {
         // - 8 bytes for ulong key
         // - 12 bytes for value
         // -> 24~32 bytes total
-        // so each hinted GC should free at least ~192 MiB (3 << 26) bytes
+        // so each hinted GC should free at least ~384 MiB (3 << 27) bytes
         // which should make a difference on my laptop, since it has 32 GiB and 12 CPU cores 
-        const ulong entriesToDropBeforeManualGc = 1 << 22;
+        const ulong entriesToDropBeforeManualGc = 1 << 23;
         if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
             GC.Collect(GC.MaxGeneration, 
                 GCCollectionMode.Optimized, 
