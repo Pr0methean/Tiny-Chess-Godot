@@ -223,7 +223,7 @@ public class Bot_1337 : IChessBot {
             score >= beta ? LOWERBOUND : EXACT;
 
         alphaBetaCache[monotonicKey][key] = new CacheEntry(
-            score, quietDepth, nodeType
+            score, quietDepth, totalDepth, nodeType
         );
         return score;
     }
