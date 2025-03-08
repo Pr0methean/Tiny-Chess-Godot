@@ -42,7 +42,7 @@ public class Bot_1337 : IChessBot {
 
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public readonly struct CacheEntry {
+    public readonly record struct CacheEntry {
         public readonly long Score;
         public readonly byte QuietDepth;
         public readonly byte TotalDepth;
