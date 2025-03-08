@@ -11,6 +11,7 @@ using ChessChallenge.API;
 public class Bot_1337 : IChessBot {
     public static int MAX_MONOTONIC_KEY = 30 + 6 * 16 * 31;
     private const byte QUIET_DEPTH = 1;
+    private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
 
     private const long MATERIAL_MULTIPLIER = 1_000_000;
@@ -82,7 +83,7 @@ public class Bot_1337 : IChessBot {
         board.GetLegalMovesNonAlloc(ref legalMoves);
         foreach (var move in legalMoves) {
             board.MakeMove(move);
-            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), -INFINITY, INFINITY, !board.IsWhiteToMove);
+            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), (byte) (MAX_TOTAL_DEPTH - 1), -INFINITY, INFINITY, !board.IsWhiteToMove);
 
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
@@ -131,7 +132,7 @@ public class Bot_1337 : IChessBot {
         return nonKingPiecesTotal + pawnsKey * 31;
     }
 
-    private long AlphaBeta(Board board, byte quietDepth, long alpha, long beta, bool maximizingPlayer) {
+    private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
         int monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
@@ -178,32 +179,34 @@ public class Bot_1337 : IChessBot {
 
         bool foundNonQuietMove = false;
         score = maximizingPlayer ? -INFINITY : INFINITY;
-        foreach (var move in legalMoves) {
-            byte nextDepth;
-            if (isUnquietMove(move)) {
-                nextDepth = quietDepth;
-                foundNonQuietMove = true;
-            }
-            else {
-                if (quietDepth == 0) {
-                    continue;
+        if (totalDepth > 0) {
+            foreach (var move in legalMoves) {
+                byte nextDepth;
+                if (isUnquietMove(move)) {
+                    nextDepth = quietDepth;
+                    foundNonQuietMove = true;
                 }
-                nextDepth = (byte) (quietDepth - 1);
+                else {
+                    if (quietDepth == 0) {
+                        continue;
+                    }
+                    nextDepth = (byte) (quietDepth - 1);
+                }
+                board.MakeMove(move);
+                long eval = AlphaBeta(board, nextDepth, (byte) (totalDepth - 1), alpha, beta, false);
+                board.UndoMove(move);
+                if (maximizingPlayer) {
+                    score = Math.Max(score, eval);
+                    alpha = Math.Max(alpha, eval);
+                } else {
+                    score = Math.Min(score, eval);
+                    beta = Math.Min(beta, eval);
+                }
+                if (beta <= alpha)
+                    break;
             }
-            board.MakeMove(move);
-            long eval = AlphaBeta(board, nextDepth, alpha, beta, false);
-            board.UndoMove(move);
-            if (maximizingPlayer) {
-                score = Math.Max(score, eval);
-                alpha = Math.Max(alpha, eval);
-            } else {
-                score = Math.Min(score, eval);
-                beta = Math.Min(beta, eval);
-            }
-            if (beta <= alpha)
-                break;
         }
-        if (alpha < beta && quietDepth == 0 && !foundNonQuietMove) {
+        if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
             score = EvaluatePosition(board, legalMoves);
         }
         // Cache store
