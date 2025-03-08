@@ -105,18 +105,20 @@ public class Bot_1337 : IChessBot {
         if (newTrimmedCacheEntries == 0) {
             return;
         }
+        /*
         int newYoungCollectionsAtLastTrim = GC.CollectionCount(0);
         if (newYoungCollectionsAtLastTrim > youngCollectionsAtLastTrim) {
             youngCollectionsAtLastTrim = newYoungCollectionsAtLastTrim;
             trimmedCacheEntries = 0;
         }
+        */
         trimmedCacheEntries += newTrimmedCacheEntries;
         // In alphaBetaCache, each entry should occupy: 
         // - 4~12 bytes for object header
         // - 8 bytes for ulong key
         // - 12 bytes for value
         // -> 24~32 bytes total
-        // so each hinted GC should free at least ~768 MiB (3 << 28) bytes
+        // so each manual GC should free at least ~768 MiB (3 << 28) bytes
         // which should make a difference on my laptop, since it has 32 GiB and 12 CPU cores 
         const ulong entriesToDropBeforeManualGc = 1 << 24;
         if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
