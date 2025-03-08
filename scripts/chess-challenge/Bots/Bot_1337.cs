@@ -118,8 +118,9 @@ public class Bot_1337 : IChessBot {
             const ulong blockingGcThreshold = aggressiveGcThreshold * 2;
             if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
                 GC.Collect(GC.MaxGeneration, 
-                    trimmedCacheEntries >= aggressiveGcThreshold ? GCCollectionMode.Aggressive : GCCollectionMode.Default,, 
-                    trimmedCacheEntries >= blockingGcThreshold, true);
+                    trimmedCacheEntries >= aggressiveGcThreshold ? GCCollectionMode.Aggressive : GCCollectionMode.Default, 
+                    trimmedCacheEntries >= blockingGcThreshold, 
+                    true);
                 trimmedCacheEntries = 0;
             }
         }
