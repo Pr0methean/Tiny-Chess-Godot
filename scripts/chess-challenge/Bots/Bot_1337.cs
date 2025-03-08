@@ -8,7 +8,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = (5 * 16) + (5 * 16 + 1) * (16 + 17 * 30);
+    public static int MAX_MONOTONIC_KEY = (6 * 510) + (6 * 510 + 1) * 30;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -46,13 +46,18 @@ public class Bot_1337 : IChessBot {
         public byte TotalDepth { get; }
 
         public CacheEntry(long lowerBound, long upperBound, byte quietDepth, byte totalDepth) {
+            // Add validation
+            if (totalDepth < quietDepth)
+                throw new ArgumentException("Total depth must be >= quiet depth");
+            if (upperBound < lowerBound)
+                throw new ArgumentException("Upper bound must be >= lower bound");
+
             QuietDepth = quietDepth;
             TotalDepth = totalDepth;
             LowerBound = lowerBound;
             UpperBound = upperBound;
         }
     }
-
 
     public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
@@ -109,23 +114,26 @@ public class Bot_1337 : IChessBot {
         ulong whitePawnBitboard = board.GetPieceBitboard(PieceType.Pawn, true);
         ulong blackPawnBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
         int totalPawns = BitOperations.PopCount(whitePawnBitboard | blackPawnBitboard);
-        ulong rank2PawnsBitboard = (whitePawnBitboard &   0x0000_0000_0000_ff00)
-                                   | (blackPawnBitboard & 0x00ff_0000_0000_0000);
-        ulong rank3PawnsBitboard = (whitePawnBitboard &   0x0000_0000_00ff_0000)
-                                   | (blackPawnBitboard & 0x0000_ff00_0000_0000);
-        ulong rank4PawnsBitboard = (whitePawnBitboard &   0x0000_0000_ff00_0000)
-                                   | (blackPawnBitboard & 0x0000_00ff_0000_0000);
-        ulong rank5PawnsBitboard = (whitePawnBitboard &   0x0000_00ff_0000_0000)
-                                   | (blackPawnBitboard & 0x0000_0000_ff00_0000);
-        ulong rank6PawnsBitboard = (whitePawnBitboard &   0x0000_ff00_0000_0000)
-                                   | (blackPawnBitboard & 0x0000_0000_00ff_0000);
-        int pawnsKey = 5 * BitOperations.PopCount(rank2PawnsBitboard)
-            + 4 * BitOperations.PopCount(rank3PawnsBitboard)
-            + 3 * BitOperations.PopCount(rank4PawnsBitboard)
-            + 2 * BitOperations.PopCount(rank5PawnsBitboard)
-            + 1 * BitOperations.PopCount(rank6PawnsBitboard);
+        ulong rank2PawnsKey = ((whitePawnBitboard & 0x0000_0000_0000_ff00) >> 8) 
+                              + ((blackPawnBitboard & 0x00ff_0000_0000_0000) >> 48);
+        ulong rank3PawnsKey = ((whitePawnBitboard &   0x0000_0000_00ff_0000) >> 16) 
+                              + ((blackPawnBitboard & 0x0000_ff00_0000_0000) >> 40);
+        ulong rank4PawnsKey = ((whitePawnBitboard &   0x0000_0000_ff00_0000) >> 24) 
+                              + ((blackPawnBitboard & 0x0000_00ff_0000_0000) >> 32);
+        ulong rank5PawnsKey = ((whitePawnBitboard &   0x0000_00ff_0000_0000) >> 32) 
+                              + ((blackPawnBitboard & 0x0000_0000_ff00_0000) >> 24);
+        ulong rank6PawnsKey = ((whitePawnBitboard &   0x0000_ff00_0000_0000) >> 40) 
+                              + ((blackPawnBitboard & 0x0000_0000_00ff_0000) >> 16);
+        ulong rank7PawnsKey = ((whitePawnBitboard &   0x00ff_0000_0000_0000) >> 48) 
+                              + ((blackPawnBitboard & 0x0000_0000_0000_ff00) >> 8);
+        int pawnsKey = (int) (6 * rank7PawnsKey
+                       + 5 * rank6PawnsKey
+                       + 4 * rank5PawnsKey
+                       + 3 * rank4PawnsKey
+                       + 2 * rank3PawnsKey
+                       + rank2PawnsKey);
         int nonKingPiecesTotal = BitOperations.PopCount(board.AllPiecesBitboard) - 2;
-        return pawnsKey + (5 * 16 + 1) * (totalPawns + 17 * nonKingPiecesTotal);
+        return pawnsKey + (6 * 510 + 1) * nonKingPiecesTotal;
     }
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
