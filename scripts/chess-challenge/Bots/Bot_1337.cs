@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 namespace auto_Bot_1337;
 
 using System.Diagnostics;
-using System.Linq;
 using System;
 using ChessChallenge.API;
 
@@ -33,7 +32,6 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] FILE_CENTER_DISTANCE_VALUES = [6, 3, 1, 0, 0, 1, 3, 6];
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
-    private static Square[] SQUARES = Enumerable.Range(0, 64).Select(i => new Square(i)).ToArray();
     private static Random random = new();
     private const byte EXACT = 0;
     private const byte LOWERBOUND = 1;
@@ -43,7 +41,7 @@ public class Bot_1337 : IChessBot {
     private static int youngCollectionsAtLastTrim = 0;
 
     // Make the struct readonly and add StructLayout attribute
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public readonly struct CacheEntry {
         public readonly long Score;
         public readonly byte QuietDepth;
@@ -95,16 +93,23 @@ public class Bot_1337 : IChessBot {
     }
 
     public static void trimCache(int newCurrentMonotonicKey) {
-        int newYoungCollectionsAtLastTrim = GC.CollectionCount(0);
-        if (newYoungCollectionsAtLastTrim > youngCollectionsAtLastTrim) {
-            youngCollectionsAtLastTrim = newYoungCollectionsAtLastTrim;
-            trimmedCacheEntries = 0;
-        }
-        if (currentMonotonicKey < newCurrentMonotonicKey) {
+        if (currentMonotonicKey > newCurrentMonotonicKey) {
+            ulong newTrimmedCacheEntries = 0;
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-                trimmedCacheEntries += (ulong) alphaBetaCache[i].Count;
+                newTrimmedCacheEntries += (ulong) alphaBetaCache[i].Count;
                 alphaBetaCache[i] = null;
             }
+            Debug.WriteLine("Lowering the monotonic key to {0} freed {1} cache entries",
+                newCurrentMonotonicKey, newTrimmedCacheEntries);
+            if (newTrimmedCacheEntries == 0) {
+                return;
+            }
+            int newYoungCollectionsAtLastTrim = GC.CollectionCount(0);
+            if (newYoungCollectionsAtLastTrim > youngCollectionsAtLastTrim) {
+                youngCollectionsAtLastTrim = newYoungCollectionsAtLastTrim;
+                trimmedCacheEntries = 0;
+            }
+            trimmedCacheEntries += newTrimmedCacheEntries;
             currentMonotonicKey = newCurrentMonotonicKey;
             // In alphaBetaCache: 
             // - 4 bytes for object header
@@ -120,7 +125,7 @@ public class Bot_1337 : IChessBot {
             if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
                 GC.Collect(GC.MaxGeneration, 
                     trimmedCacheEntries >= aggressiveGcThreshold ? GCCollectionMode.Aggressive : GCCollectionMode.Optimized, 
-                    trimmedCacheEntries >= blockingGcThreshold, 
+                    false, 
                     true);
                 trimmedCacheEntries = 0;
             }
@@ -141,8 +146,6 @@ public class Bot_1337 : IChessBot {
                                    | (blackPawnBitboard & 0x0000_0000_ff00_0000);
         ulong rank6PawnsBitboard = (whitePawnBitboard &   0x0000_ff00_0000_0000)
                                    | (blackPawnBitboard & 0x0000_0000_00ff_0000);
-        ulong rank7PawnsBitboard = (whitePawnBitboard &   0x00ff_0000_0000_0000)
-                                   | (blackPawnBitboard & 0x0000_0000_0000_ff00);
         int pawnsKey = 5 * BitOperations.PopCount(rank2PawnsBitboard)
             + 4 * BitOperations.PopCount(rank3PawnsBitboard)
             + 3 * BitOperations.PopCount(rank4PawnsBitboard)
@@ -286,27 +289,28 @@ public class Bot_1337 : IChessBot {
         // Material and passed-pawn evaluation
         long evaluation = 0;
         if (isBareKing(board.WhitePiecesBitboard)) {
-            Debug.WriteLine("Skipping material evaluation: white is a bare king!");
+            //Debug.WriteLine("Skipping material evaluation: white is a bare king!");
             evaluation = -BARE_KING_EVAL;
         }
         else if (isBareKing(board.BlackPiecesBitboard)) {
-            Debug.WriteLine("Skipping material evaluation: black is a bare king!");
+            //Debug.WriteLine("Skipping material evaluation: black is a bare king!");
             evaluation = BARE_KING_EVAL;
         }
         else {
             for (int square = 0; square < 64; square++) {
-                Piece piece = board.GetPiece(SQUARES[square]);
-                long pieceValue = PIECE_VALUES[(int)piece.PieceType]; 
-                if (piece.IsPawn) {
+                PieceType pieceType = board.GetPieceType(square);
+                bool pieceIsWhite = board.IsWhitePiece(square);
+                long pieceValue = PIECE_VALUES[(int)pieceType]; 
+                if (pieceType == PieceType.Pawn) {
                     int rank = square >> 3;
-                    pieceValue += (piece.IsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
+                    pieceValue += (pieceIsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
                         [rank];
                 }
 
-                evaluation += pieceValue * (piece.IsWhite ? 1 : -1);
+                evaluation += pieceValue * (pieceIsWhite ? 1 : -1);
             }
 
-            Debug.WriteLine("Material eval: {0}", evaluation);
+            //Debug.WriteLine("Material eval: {0}", evaluation);
         }
 
         return evaluation;
@@ -315,31 +319,26 @@ public class Bot_1337 : IChessBot {
     private long CalculateSwarmAndPushBonus(Board board) {
         long bonus = 0;
         for (int square = 0; square < 64; square++) {
-            Piece piece = board.GetPiece(SQUARES[square]);
-            if (!piece.IsNull) {
+            PieceType pieceType = board.GetPieceType(square);
+            bool pieceIsWhite = board.IsWhitePiece(square);
+            if (pieceType != PieceType.None) {
                 long pieceBonus = 0;
-                Square enemyKingSquare = board.GetKingSquare(!piece.IsWhite);
+                Square enemyKingSquare = board.GetKingSquare(!pieceIsWhite);
                 int distance = CalculateKingDistance(square, enemyKingSquare.Index);
-                pieceBonus -= distance * PIECE_SWARM_VALUES[(int)piece.PieceType];
+                pieceBonus -= distance * PIECE_SWARM_VALUES[(int)pieceType];
                 int rank = square >> 3;
                 int file = square & 7;
-                var pieceType = (int) piece.PieceType;
-                if (piece.IsWhite) {
-                    pieceBonus += WHITE_RANK_ADVANCEMENT_VALUES[rank] 
-                                  * PIECE_RANK_PUSH_VALUES[pieceType];
-                } else {
-                    pieceBonus += BLACK_RANK_ADVANCEMENT_VALUES[rank]
-                                  * PIECE_RANK_PUSH_VALUES[pieceType];
-                }
-                if (rank != (piece.IsWhite ? 0 : 7) && pieceType != (int)PieceType.Rook) {
+                pieceBonus += (pieceIsWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES)[rank]
+                    * PIECE_RANK_PUSH_VALUES[(int)pieceType];
+                if (rank != (pieceIsWhite ? 0 : 7) && pieceType != PieceType.Rook) {
                     pieceBonus -= FILE_CENTER_DISTANCE_VALUES[file]
-                                  * PIECE_FILE_PUSH_VALUES[pieceType];
+                                  * PIECE_FILE_PUSH_VALUES[(int)pieceType];
                 }
                 else {
                     pieceBonus -= FILE_CENTER_DISTANCE_VALUES[0]
-                                  * PIECE_FILE_PUSH_VALUES[pieceType];
+                                  * PIECE_FILE_PUSH_VALUES[(int)pieceType];
                 }
-                bonus += pieceBonus * (piece.IsWhite ? 1 : -1);
+                bonus += pieceBonus * (pieceIsWhite ? 1 : -1);
             }
         }
         
