@@ -84,7 +84,7 @@ public class Bot_1337 : IChessBot {
         foreach (var move in legalMoves) {
             board.MakeMove(move);
             int monotonicKey = Bot_1337.monotonicKey(board);
-            long value = -AlphaBeta(board, QUIET_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
+            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), -INFINITY, INFINITY, !board.IsWhiteToMove);
             board.UndoMove(move);
             
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
@@ -162,7 +162,7 @@ public class Bot_1337 : IChessBot {
         score = maximizingPlayer ? -INFINITY : INFINITY;
         foreach (var move in legalMoves) {
             byte nextDepth;
-            if (move.IsCapture || move.IsPromotion) {
+            if (isUnquietMove(move)) {
                 nextDepth = quietDepth;
                 foundNonQuietMove = true;
             }
@@ -197,6 +197,10 @@ public class Bot_1337 : IChessBot {
             score, quietDepth, nodeType
         );
         return score;
+    }
+
+    private static bool isUnquietMove(Move move) {
+        return move.IsCapture || move.IsPromotion;
     }
 
     // Positive favors white
