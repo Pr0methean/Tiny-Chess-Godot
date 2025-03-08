@@ -37,7 +37,6 @@ public class Bot_1337 : IChessBot {
     private const byte LOWERBOUND = 1;
     private const byte UPPERBOUND = 2; 
     private const long BARE_KING_EVAL = 100_000_000_000L;
-    private static ulong trimmedCacheEntries = 0;
     private static int youngCollectionsAtLastTrim = 0;
 
     // Make the struct readonly and add StructLayout attribute
@@ -102,33 +101,6 @@ public class Bot_1337 : IChessBot {
         currentMonotonicKey = newCurrentMonotonicKey;
         Debug.WriteLine("Lowering the monotonic key to {0} freed {1} cache entries",
             newCurrentMonotonicKey, newTrimmedCacheEntries);
-        if (newTrimmedCacheEntries == 0) {
-            return;
-        }
-        int newYoungCollectionsAtLastTrim = GC.CollectionCount(0);
-        if (newYoungCollectionsAtLastTrim > youngCollectionsAtLastTrim) {
-            youngCollectionsAtLastTrim = newYoungCollectionsAtLastTrim;
-            trimmedCacheEntries = 0;
-        }
-        trimmedCacheEntries += newTrimmedCacheEntries;
-        // In alphaBetaCache: 
-        // - 4 bytes for object header
-        // - 8 bytes for ulong key
-        // - ~20 bytes for value since it's Pack(8)
-        // -> 32 (1 << 5) bytes total
-        // so each hinted GC should free at least ~128 MiB (1 << 27) bytes
-        // and each forced GC should free at least ~256 MiB (1 << 28) bytes
-        // which should make a difference on my laptop, since it has 32 GiB and 12 CPU cores 
-        const ulong entriesToDropBeforeManualGc = 1 << 22;
-        const ulong aggressiveGcThreshold = entriesToDropBeforeManualGc * 2;
-        const ulong blockingGcThreshold = aggressiveGcThreshold * 4;
-        if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
-            GC.Collect(GC.MaxGeneration, 
-                trimmedCacheEntries >= aggressiveGcThreshold ? GCCollectionMode.Aggressive : GCCollectionMode.Optimized, 
-                false, 
-                true);
-            trimmedCacheEntries = 0;
-        }
     }
     
     public static int monotonicKey(Board board) {
