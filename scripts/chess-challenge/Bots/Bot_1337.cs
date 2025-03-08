@@ -40,6 +40,7 @@ public class Bot_1337 : IChessBot {
     private const byte UPPERBOUND = 2; 
     private const long BARE_KING_EVAL = 100_000_000_000L;
     private static ulong trimmedCacheEntries = 0;
+    private static int youngCollectionsAtLastTrim = 0;
 
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -94,6 +95,11 @@ public class Bot_1337 : IChessBot {
     }
 
     public static void trimCache(int newCurrentMonotonicKey) {
+        int newYoungCollectionsAtLastTrim = GC.CollectionCount(0);
+        if (newYoungCollectionsAtLastTrim > youngCollectionsAtLastTrim) {
+            youngCollectionsAtLastTrim = newYoungCollectionsAtLastTrim;
+            trimmedCacheEntries = 0;
+        }
         if (currentMonotonicKey < newCurrentMonotonicKey) {
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
                 trimmedCacheEntries += (ulong) alphaBetaCache[i].Count;
@@ -107,7 +113,7 @@ public class Bot_1337 : IChessBot {
                 // - ~20 bytes for value since it's Pack(8)
                 // -> 32 (1 << 5) bytes total
                 // so each GC should free ~1GiB (1 << 3` bytes)
-                GC.Collect();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, false, true);
                 trimmedCacheEntries = 0;
             }
         }
