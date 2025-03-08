@@ -111,20 +111,17 @@ public class Bot_1337 : IChessBot {
             trimmedCacheEntries = 0;
         }
         trimmedCacheEntries += newTrimmedCacheEntries;
-        // In alphaBetaCache: 
-        // - 4 bytes for object header
+        // In alphaBetaCache, each entry should occupy: 
+        // - 4~12 bytes for object header
         // - 8 bytes for ulong key
-        // - ~20 bytes for value since it's Pack(8)
-        // -> 32 (1 << 5) bytes total
-        // so each hinted GC should free at least ~128 MiB (1 << 27) bytes
-        // and each forced GC should free at least ~256 MiB (1 << 28) bytes
+        // - 12 bytes for value
+        // -> 24~32 bytes total
+        // so each hinted GC should free at least ~192 MiB (3 << 26) bytes
         // which should make a difference on my laptop, since it has 32 GiB and 12 CPU cores 
         const ulong entriesToDropBeforeManualGc = 1 << 22;
-        const ulong aggressiveGcThreshold = entriesToDropBeforeManualGc * 2;
-        const ulong blockingGcThreshold = aggressiveGcThreshold * 4;
         if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
             GC.Collect(GC.MaxGeneration, 
-                trimmedCacheEntries >= aggressiveGcThreshold ? GCCollectionMode.Aggressive : GCCollectionMode.Optimized, 
+                GCCollectionMode.Default, 
                 false, 
                 true);
             trimmedCacheEntries = 0;
