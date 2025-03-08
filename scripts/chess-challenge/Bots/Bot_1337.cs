@@ -236,8 +236,9 @@ public class Bot_1337 : IChessBot {
     private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
+        bool isInCheck = board.IsInCheck();
         // Check penalty
-        if (board.IsInCheck()) {
+        if (isInCheck) {
             evaluation -= CHECK_PENALTY * (isWhite ? 1 : -1);
         }
         
@@ -247,11 +248,12 @@ public class Bot_1337 : IChessBot {
 
         // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
         evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
-        if (board.TrySkipTurn()) {
+        if (!isInCheck) {
+            board.MakeMove(Move.NullMove);
             Span<Move> opponentLegalMoves = stackalloc Move[128];
             board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
             evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
-            board.UndoSkipTurn();
+            board.UndoMove(Move.NullMove);
         }
 
         if (board.FiftyMoveCounter >= 40 && evaluation != 0) {
