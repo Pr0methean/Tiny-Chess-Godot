@@ -33,9 +33,6 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
     private static Random random = new();
-    private const byte EXACT = 0;
-    private const byte LOWERBOUND = 1;
-    private const byte UPPERBOUND = 2; 
     private const long BARE_KING_EVAL = 100_000_000_000L;
     private static ulong trimmedCacheEntries = 0;
     private static int youngCollectionsAtLastTrim = 0;
@@ -48,7 +45,7 @@ public class Bot_1337 : IChessBot {
         public byte QuietDepth { get; }
         public byte TotalDepth { get; }
 
-        public CacheEntry(long lowerBound, long upperBound, byte quietDepth, byte totalDepth, int nodeType) {
+        public CacheEntry(long lowerBound, long upperBound, byte quietDepth, byte totalDepth) {
             QuietDepth = quietDepth;
             TotalDepth = totalDepth;
             LowerBound = lowerBound;
@@ -106,34 +103,6 @@ public class Bot_1337 : IChessBot {
             alphaBetaCache[i] = null;
         }
         currentMonotonicKey = newCurrentMonotonicKey;
-        Debug.WriteLine("Lowering the monotonic key to {0} freed {1} cache entries",
-            newCurrentMonotonicKey, newTrimmedCacheEntries);
-        if (newTrimmedCacheEntries == 0) {
-            return;
-        }
-        /*
-        int newYoungCollectionsAtLastTrim = GC.CollectionCount(0);
-        if (newYoungCollectionsAtLastTrim > youngCollectionsAtLastTrim) {
-            youngCollectionsAtLastTrim = newYoungCollectionsAtLastTrim;
-            trimmedCacheEntries = 0;
-        }
-        */
-        trimmedCacheEntries += newTrimmedCacheEntries;
-        // In alphaBetaCache, each entry should occupy: 
-        // - 4~12 bytes for object header
-        // - 8 bytes for ulong key
-        // - 12 bytes for value
-        // -> 24~32 bytes total
-        // so each manual GC should free at least ~768 MiB (3 << 28) bytes
-        // which should make a difference on my laptop, since it has 32 GiB and 12 CPU cores 
-        const ulong entriesToDropBeforeManualGc = 1 << 24;
-        if (trimmedCacheEntries >= entriesToDropBeforeManualGc) {
-            GC.Collect(GC.MaxGeneration, 
-                GCCollectionMode.Aggressive, 
-                true, 
-                true);
-            trimmedCacheEntries = 0;
-        }
     }
     
     public static int monotonicKey(Board board) {
@@ -248,7 +217,7 @@ public class Bot_1337 : IChessBot {
             lowerBound = Math.Max(lowerBound, existing.LowerBound);
             upperBound = Math.Min(upperBound, existing.UpperBound);
         }
-        alphaBetaCache[monotonicKey][key] = new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth, EXACT);
+        alphaBetaCache[monotonicKey][key] = new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth);
         return score;
     }
 
