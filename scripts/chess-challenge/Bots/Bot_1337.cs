@@ -34,8 +34,7 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
     private static Random random = new();
     private const long BARE_KING_EVAL = 100_000_000_000L;
-    private static ulong trimmedCacheEntries = 0;
-    private static int youngCollectionsAtLastTrim = 0;
+    private static bool firstNonBookMove = false;
 
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -77,6 +76,11 @@ public class Bot_1337 : IChessBot {
             }
         }
 
+        if (!firstNonBookMove) {
+            currentMonotonicKey = monotonicKey(board);
+            firstNonBookMove = true;
+        }
+
         if (board.PlyCount == 32) {
             TinyOpeningBook.unload();
         }
@@ -102,9 +106,7 @@ public class Bot_1337 : IChessBot {
 
     public static void trimCache(int newCurrentMonotonicKey) {
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
-        ulong newTrimmedCacheEntries = 0;
         for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-            newTrimmedCacheEntries += (ulong) alphaBetaCache[i].Count;
             alphaBetaCache[i] = null;
         }
         currentMonotonicKey = newCurrentMonotonicKey;
@@ -150,13 +152,46 @@ public class Bot_1337 : IChessBot {
         return pawnsKey + (243 * 510 + 1) * nonKingPiecesKey;
     }
 
+    private static CacheEntry? getAlphaBetaCacheEntry(Board board) {
+        int key = monotonicKey(board);
+        ulong zobristKey = board.ZobristKey;
+        if (key > currentMonotonicKey) {
+            throw new ArgumentException("Key exceeds what's already been eliminated");
+        }
+        if (alphaBetaCache[key] == null) {
+            return null;
+        }
+
+        CacheEntry entry;
+        if (alphaBetaCache[key].TryGetValue(zobristKey, out entry)) {
+            return entry;
+        }
+        return null;
+    }
+    
+    private static void setAlphaBetaCacheEntry(Board board, CacheEntry value) {
+        int key = monotonicKey(board);
+        ulong zobristKey = board.ZobristKey;
+        if (key > currentMonotonicKey) {
+            throw new ArgumentException("Key exceeds what's already been eliminated");
+        }
+        if (alphaBetaCache[key] == null) {
+            alphaBetaCache[key] = new Dictionary<ulong, CacheEntry>();
+        }
+        alphaBetaCache[key][zobristKey] = value;
+    }
+
+
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
         int monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
-        if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && (entry.TotalDepth >= totalDepth || entry.QuietDepth >= quietDepth )) {
-            alpha = Math.Max(alpha, entry.LowerBound);
-            beta = Math.Min(beta, entry.UpperBound);
+        var entry = getAlphaBetaCacheEntry(board);
+        if (entry is {} cacheEntry) {
+            if (cacheEntry.TotalDepth >= totalDepth || cacheEntry.QuietDepth >= quietDepth) {
+                alpha = Math.Max(alpha, cacheEntry.LowerBound);
+                beta = Math.Min(beta, cacheEntry.UpperBound);
+            }
         }
         if (alpha >= beta) {
             return maximizingPlayer ? beta : alpha;
@@ -239,24 +274,28 @@ public class Bot_1337 : IChessBot {
             // If a state is terminal, the path length leading to it doesn't matter
             quietDepth = byte.MaxValue;
             totalDepth = byte.MaxValue;
-        } else if (alphaBetaCache[monotonicKey].TryGetValue(key, out var existing)) {
-            quietDepth = Math.Min(existing.QuietDepth, quietDepth);
-            totalDepth = Math.Min(existing.TotalDepth, totalDepth);
-            lowerBound = Math.Max(lowerBound, existing.LowerBound);
-            upperBound = Math.Min(upperBound, existing.UpperBound);
-            if (lowerBound > upperBound) {
-                if (totalDepth > existing.TotalDepth || (totalDepth == existing.TotalDepth && quietDepth > existing.QuietDepth)) {
-                    // Deeper search is correct
-                    lowerBound = score;
-                    upperBound = score;
-                }
-                else {
-                    // Don't write to cache if a deeper search contradicts us
-                    return score;
+        } else {
+            var cacheEntryToUpdate = getAlphaBetaCacheEntry(board);
+            if (cacheEntryToUpdate is {} existing) {
+                quietDepth = Math.Min(existing.QuietDepth, quietDepth);
+                totalDepth = Math.Min(existing.TotalDepth, totalDepth);
+                lowerBound = Math.Max(lowerBound, existing.LowerBound);
+                upperBound = Math.Min(upperBound, existing.UpperBound);
+                if (lowerBound > upperBound) {
+                    if (totalDepth > existing.TotalDepth ||
+                        (totalDepth == existing.TotalDepth && quietDepth > existing.QuietDepth)) {
+                        // Deeper search is correct
+                        lowerBound = score;
+                        upperBound = score;
+                    }
+                    else {
+                        // Don't write to cache if a deeper search contradicts us
+                        return score;
+                    }
                 }
             }
         }
-        alphaBetaCache[monotonicKey][key] = new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth);
+        setAlphaBetaCacheEntry(board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
         return score;
     }
 
@@ -282,7 +321,7 @@ public class Bot_1337 : IChessBot {
         evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (!isInCheck) {
             board.MakeMove(Move.NullMove);
-            if (!(alphaBetaCache[monotonicKey].TryGetValue(board.ZobristKey, out var entry)) &&
+            if (alphaBetaCache[monotonicKey].TryGetValue(board.ZobristKey, out var entry) &&
                     entry is { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
                 Span<Move> opponentLegalMoves = stackalloc Move[128];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
