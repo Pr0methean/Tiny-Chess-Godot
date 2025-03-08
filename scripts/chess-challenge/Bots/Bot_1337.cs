@@ -8,7 +8,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = (243 * 510) + (243 * 510 + 1) * 30;
+    public static int MAX_MONOTONIC_KEY = (243 * 510) + (243 * 510 + 1) * (24 + 25 * 22);
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -131,8 +131,23 @@ public class Bot_1337 : IChessBot {
                        + 9 * rank5PawnsKey
                        + 3 * rank6PawnsKey
                        + rank7PawnsKey);
-        int nonKingPiecesTotal = BitOperations.PopCount(board.AllPiecesBitboard) - 2;
-        return pawnsKey + (243 * 510 + 1) * nonKingPiecesTotal;
+        ulong bishopBitboard = board.GetPieceBitboard(PieceType.Bishop, false)
+                               | board.GetPieceBitboard(PieceType.Bishop, true);
+        ulong lightBishopBitboard = bishopBitboard & 0x55aa_55aa_55aa_55aa;
+        ulong darkBishopBitboard = bishopBitboard & 0xaa55_aa55_aa55_aa55;
+        int totalPawns = BitOperations.PopCount(whitePawnBitboard) + BitOperations.PopCount(blackPawnBitboard);
+        int totalPawnsLightBishopsKnightsAndQueens = BitOperations.PopCount(board.GetPieceBitboard(PieceType.Queen, false))
+                                  + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Queen, true))
+                                  + BitOperations.PopCount(lightBishopBitboard)
+                                  + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Knight, false))
+                                  + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Knight, true))
+                                  + totalPawns;
+        int totalPawnsDarkBishopsAndRooks = BitOperations.PopCount(board.GetPieceBitboard(PieceType.Rook, false))
+                                 + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Rook, true))
+                                 + BitOperations.PopCount(darkBishopBitboard)
+                                 + totalPawns;
+        int nonKingPiecesKey = totalPawnsLightBishopsKnightsAndQueens + 25 * totalPawnsDarkBishopsAndRooks;
+        return pawnsKey + (243 * 510 + 1) * nonKingPiecesKey;
     }
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
