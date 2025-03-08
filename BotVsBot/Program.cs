@@ -14,7 +14,7 @@ bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
 GameResult result = GameResult.InProgress;
-int monotonicKey = Bot_1337.MAX_MONOTONIC_KEY;
+int monotonicKey;
 int oldMonotonicKey = Bot_1337.MAX_MONOTONIC_KEY;
 do {
     Bot_1337 botToMove = whiteToMove ? white : black;
@@ -31,8 +31,8 @@ do {
         }
     }
 
-    if (Bot_1337.alphaBetaCache[monotonicKey].TryGetValue(board.ZobristKey, out var cacheEntry)
-        && cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
+    var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(apiBoard);
+    if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
         // Handles false positives due to Zobrist collision
         result = Arbiter.GetGameState(board);
     } else if (Arbiter.isThreefoldRepetition(board)) {

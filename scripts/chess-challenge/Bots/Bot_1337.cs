@@ -61,12 +61,6 @@ public class Bot_1337 : IChessBot {
     public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
 
-    static Bot_1337() {
-        for (int i = 0; i <= MAX_MONOTONIC_KEY; i++) {
-            alphaBetaCache[i] = new Dictionary<ulong, CacheEntry>();
-        }
-    }
-    
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
         if (board.PlyCount < 32) {
@@ -152,7 +146,7 @@ public class Bot_1337 : IChessBot {
         return pawnsKey + (243 * 510 + 1) * nonKingPiecesKey;
     }
 
-    private static CacheEntry? getAlphaBetaCacheEntry(Board board) {
+    public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
         int key = monotonicKey(board);
         ulong zobristKey = board.ZobristKey;
         if (key > currentMonotonicKey) {
@@ -321,8 +315,8 @@ public class Bot_1337 : IChessBot {
         evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (!isInCheck) {
             board.MakeMove(Move.NullMove);
-            if (alphaBetaCache[monotonicKey].TryGetValue(board.ZobristKey, out var entry) &&
-                    entry is { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
+            var entry = getAlphaBetaCacheEntry(board);
+            if (entry is { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
                 Span<Move> opponentLegalMoves = stackalloc Move[128];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
                 evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
