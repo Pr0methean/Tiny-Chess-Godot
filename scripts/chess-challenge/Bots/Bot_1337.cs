@@ -210,7 +210,7 @@ public class Bot_1337 : IChessBot {
             }
         }
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
-            score = EvaluatePosition(board, legalMoves);
+            score = EvaluatePosition(board, monotonicKey, legalMoves);
         }
         // Cache store
         cacheStore:
@@ -233,7 +233,7 @@ public class Bot_1337 : IChessBot {
     }
 
     // Positive favors white
-    private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
+    private long EvaluatePosition(Board board, int monotonicKey, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
         bool isInCheck = board.IsInCheck();
@@ -250,9 +250,12 @@ public class Bot_1337 : IChessBot {
         evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (!isInCheck) {
             board.MakeMove(Move.NullMove);
-            Span<Move> opponentLegalMoves = stackalloc Move[128];
-            board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
-            evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
+            if (!(alphaBetaCache[monotonicKey].TryGetValue(board.ZobristKey, out var entry)) &&
+                    entry is { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
+                Span<Move> opponentLegalMoves = stackalloc Move[128];
+                board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
+                evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
+            }
             board.UndoMove(Move.NullMove);
         }
 
