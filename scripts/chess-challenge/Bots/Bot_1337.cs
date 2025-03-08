@@ -100,10 +100,17 @@ public class Bot_1337 : IChessBot {
 
     public static void trimCache(int newCurrentMonotonicKey) {
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
+        bool deletedSomething = false;
         for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
+            if (alphaBetaCache[i] != null && alphaBetaCache[i].Count > 0) {
+                deletedSomething = true;
+            }
             alphaBetaCache[i] = null;
         }
         currentMonotonicKey = newCurrentMonotonicKey;
+        if (deletedSomething) {
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+        }
     }
     
     public static int monotonicKey(Board board) {
