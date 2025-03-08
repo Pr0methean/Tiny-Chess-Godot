@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "runtimeOptions": {
+    }
+  },
+  "configProperties": {
+    "System.GC.Concurrent": false,
+    "System.GC.HeapHardLimitPercent": 100,
+    "System.GC.RetainVM": false,
+    "System.GC.Server": false
+  }
+}
