@@ -42,15 +42,17 @@ public class Bot_1337 : IChessBot {
     private static ulong trimmedCacheEntries = 0;
 
     // Make the struct readonly and add StructLayout attribute
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     private readonly struct CacheEntry {
         public readonly long Score;
-        public readonly byte Depth;
+        public readonly byte QuietDepth;
+        public readonly byte TotalDepth;
         public readonly byte NodeType;
-        public CacheEntry(long score, byte depth, byte nodeType) {
+        public CacheEntry(long score, byte quietDepth, byte totalDepth, byte nodeType) {
             Score = score;
-            Depth = depth;
+            QuietDepth = quietDepth;
             NodeType = nodeType;
+            TotalDepth = totalDepth;
         }
     }
 
@@ -99,14 +101,14 @@ public class Bot_1337 : IChessBot {
         if (currentMonotonicKey < newCurrentMonotonicKey) {
             for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
                 trimmedCacheEntries += (ulong) materialEvalCache[i].Count
-                                       + (ulong) alphaBetaCache[i].Count
+                                       + 2 * (ulong) alphaBetaCache[i].Count
                                        + (ulong) mateOrDrawCache[i].Count;
                 alphaBetaCache[i] = null;
                 materialEvalCache[i] = null;
                 mateOrDrawCache[i] = null;
             }
             currentMonotonicKey = newCurrentMonotonicKey;
-            if (trimmedCacheEntries > (1 << 24)) {
+            if (trimmedCacheEntries > 1 << 27) {
                 GC.Collect();
                 trimmedCacheEntries = 0;
             }
@@ -142,7 +144,7 @@ public class Bot_1337 : IChessBot {
         ulong key = board.ZobristKey;
         int monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
-        if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && entry.Depth >= quietDepth) {
+        if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && entry.QuietDepth >= quietDepth && entry.TotalDepth >= totalDepth) {
             if (entry.NodeType == EXACT) return entry.Score;
             if (entry.NodeType == LOWERBOUND) alpha = Math.Max(alpha, entry.Score);
             if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
