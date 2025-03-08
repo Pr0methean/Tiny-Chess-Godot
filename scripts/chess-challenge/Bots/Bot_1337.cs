@@ -142,7 +142,7 @@ public class Bot_1337 : IChessBot {
         ulong key = board.ZobristKey;
         int monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
-        if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && entry.QuietDepth >= quietDepth && entry.TotalDepth >= totalDepth) {
+        if (alphaBetaCache[monotonicKey].TryGetValue(key, out var entry) && (entry.TotalDepth >= totalDepth || entry.QuietDepth >= quietDepth )) {
             if (entry.NodeType == EXACT) return entry.Score;
             if (entry.NodeType == LOWERBOUND) alpha = Math.Max(alpha, entry.Score);
             if (entry.NodeType == UPPERBOUND) beta = Math.Min(beta, entry.Score);
