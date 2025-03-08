@@ -395,15 +395,3 @@ public class Bot_1337 : IChessBot {
         return (bitboard & (bitboard - 1)) == 0;
     }
 }
-
-static class DictionaryExt {
-    public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TValue> creator) 
-    {
-        if (!dict.TryGetValue(key, out TValue val)) {
-            val = creator();
-            dict.Add(key, val);
-        }
-
-        return val;
-    }
-}
