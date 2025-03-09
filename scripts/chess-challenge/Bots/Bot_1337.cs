@@ -9,7 +9,7 @@ using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
     private const int CASTLING_CONSTANT = 0xca51;
-    public const int MAX_MONOTONIC_KEY = (63 * 510) + (63 * 510 + 1) * (24 + 25 * 22) + CASTLING_CONSTANT * 15;
+    private const int MAX_MONOTONIC_KEY = (63 * 510) + (63 * 510 + 1) * (24 + 25 * 22) + CASTLING_CONSTANT * 15;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
