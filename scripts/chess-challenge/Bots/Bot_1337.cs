@@ -85,10 +85,15 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
+        long fiftyMoveAdjustment = board.FiftyMoveCounter >= 40 ? FIFTY_MOVE_COUNTER_PENALTY *
+                                   board.FiftyMoveCounter * board.FiftyMoveCounter * board.FiftyMoveCounter : 0;
         foreach (var move in legalMoves) {
             board.MakeMove(move);
             long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
-
+            if (value != 0) {
+                long underdogMultiplier = (value > 0) ? -1 : 1;
+                value += underdogMultiplier * fiftyMoveAdjustment;
+            }
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
                 bestMove = move;
@@ -353,12 +358,7 @@ public class Bot_1337 : IChessBot {
             }
             board.UndoMove(Move.NullMove);
         }
-
-        if (board.FiftyMoveCounter >= 40 && evaluation != 0) {
-            long underdogMultiplier = (evaluation > 0) ? -1 : 1;
-            evaluation += underdogMultiplier * FIFTY_MOVE_COUNTER_PENALTY *
-                          board.FiftyMoveCounter * board.FiftyMoveCounter * board.FiftyMoveCounter;
-        }
+        
         return evaluation;
     }
 
