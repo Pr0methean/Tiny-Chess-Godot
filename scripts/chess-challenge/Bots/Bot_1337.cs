@@ -113,18 +113,17 @@ public class Bot_1337 : IChessBot {
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         bool deletedSomething = false;
         var keys = alphaBetaCache.Keys.GetEnumerator();
-        do {
-            if (!keys.MoveNext()) {
-                return;
-            }
-        } while (keys.Current < newCurrentMonotonicKey);
-        do {
-            if (!deletedSomething && alphaBetaCache[keys.Current].Count > 0) {
-                deletedSomething = true;
-            }
-            alphaBetaCache.Remove(keys.Current);
-        } while (keys.MoveNext());
         currentMonotonicKey = newCurrentMonotonicKey;
+        while (true) {
+            var lastKey = alphaBetaCache.Keys.LastOrDefault();
+            if (lastKey <= newCurrentMonotonicKey) {
+                break;
+            }
+            if (!deletedSomething) {
+                deletedSomething = alphaBetaCache[lastKey].Count > 0;
+            }
+            alphaBetaCache.Remove(lastKey);
+        }
         if (deletedSomething) {
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
         }
