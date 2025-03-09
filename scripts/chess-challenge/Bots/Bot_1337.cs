@@ -58,7 +58,7 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache;
+    public static SortedDictionary<int, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     public Move Think(Board board, Timer timer) {
@@ -72,8 +72,6 @@ public class Bot_1337 : IChessBot {
 
         if (!firstNonBookMove) {
             currentMonotonicKey = monotonicKey(board);
-            alphaBetaCache = new Dictionary<ulong, CacheEntry>?[currentMonotonicKey + 1];
-            firstNonBookMove = true;
         }
 
         if (board.PlyCount == 32) {
@@ -103,12 +101,18 @@ public class Bot_1337 : IChessBot {
         if (!firstNonBookMove) return;
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         bool deletedSomething = false;
-        for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
-            if (alphaBetaCache[i] != null && alphaBetaCache[i].Count > 0) {
+        var keys = alphaBetaCache.Keys.GetEnumerator();
+        do {
+            if (!keys.MoveNext()) {
+                return;
+            }
+        } while (keys.Current < newCurrentMonotonicKey);
+        do {
+            if (!deletedSomething && alphaBetaCache[keys.Current].Count > 0) {
                 deletedSomething = true;
             }
-            alphaBetaCache[i] = null;
-        }
+            alphaBetaCache.Remove(keys.Current);
+        } while (keys.MoveNext());
         currentMonotonicKey = newCurrentMonotonicKey;
         if (deletedSomething) {
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
@@ -161,12 +165,10 @@ public class Bot_1337 : IChessBot {
         if (key > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        if (alphaBetaCache[key] == null) {
+        if (!alphaBetaCache.TryGetValue(key, out var cacheForMonotonicKey)) {
             return null;
         }
-
-        CacheEntry entry;
-        if (alphaBetaCache[key].TryGetValue(zobristKey, out entry)) {
+        if (cacheForMonotonicKey.TryGetValue(zobristKey, out var entry)) {
             return entry;
         }
         return null;
@@ -178,9 +180,7 @@ public class Bot_1337 : IChessBot {
         if (key > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        if (alphaBetaCache[key] == null) {
-            alphaBetaCache[key] = new Dictionary<ulong, CacheEntry>();
-        }
+        alphaBetaCache.TryAdd(key, new Dictionary<ulong, CacheEntry>());
         alphaBetaCache[key][zobristKey] = value;
     }
 
