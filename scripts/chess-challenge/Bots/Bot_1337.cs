@@ -8,7 +8,7 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = (243 * 510) + (243 * 510 + 1) * (24 + 25 * 22);
+    public static int MAX_MONOTONIC_KEY = (63 * 510) + (63 * 510 + 1) * (24 + 25 * 22);
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -128,10 +128,10 @@ public class Bot_1337 : IChessBot {
                               + ((blackPawnBitboard & 0x0000_0000_00ff_0000) >> 16);
         ulong rank7PawnsKey = ((whitePawnBitboard &   0x00ff_0000_0000_0000) >> 48) 
                               + ((blackPawnBitboard & 0x0000_0000_0000_ff00) >> 8);
-        int pawnsKey = (int) (243 * rank2PawnsKey
-                       + 81 * rank3PawnsKey
-                       + 27 * rank4PawnsKey
-                       + 9 * rank5PawnsKey
+        int pawnsKey = (int) (63 * rank2PawnsKey
+                       + 31 * rank3PawnsKey
+                       + 15 * rank4PawnsKey
+                       + 7 * rank5PawnsKey
                        + 3 * rank6PawnsKey
                        + rank7PawnsKey);
         ulong bishopBitboard = board.GetPieceBitboard(PieceType.Bishop, false)
@@ -150,7 +150,7 @@ public class Bot_1337 : IChessBot {
                                  + BitOperations.PopCount(darkBishopBitboard)
                                  + totalPawns;
         int nonKingPiecesKey = totalPawnsLightBishopsKnightsAndQueens + 25 * totalPawnsDarkBishopsAndRooks;
-        return pawnsKey + (243 * 510 + 1) * nonKingPiecesKey;
+        return pawnsKey + (63 * 510 + 1) * nonKingPiecesKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
