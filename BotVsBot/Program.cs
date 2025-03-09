@@ -14,12 +14,25 @@ bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
 GameResult result = GameResult.InProgress;
+uint plyCount = 0;
 do {
     Bot_1337 botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
-    Debug.WriteLine("Chosen move: " + move);
+    Move cccMove = new Move(move.RawValue);
+    if (plyCount % 2 == 0)
+    {
+        Console.Write(plyCount / 2 + 1 + ". ");
+    }
+    Console.Write(MoveUtility.GetMoveNameSAN(cccMove, board));
+    if (plyCount % 2 != 0)
+    {
+        Console.WriteLine();
+    } else {
+        Console.Write("  ");
+    }
+    plyCount++;
     apiBoard.MakeMove(move);
-    board.MakeMove(new Move(move.RawValue), false);
+    board.MakeMove(cccMove, false);
     if (Bot_1337.firstNonBookMove) {
         if (move.IsCapture || move.MovePieceType == Pawn 
                            || (move.MovePieceType is King or Rook && move.StartSquare.Rank == (whiteToMove ? 0 : 7))) {
@@ -37,5 +50,5 @@ do {
     }
     whiteToMove = !whiteToMove;
 } while (result == GameResult.InProgress);
-Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));
+Console.WriteLine();
 Console.WriteLine(result);
