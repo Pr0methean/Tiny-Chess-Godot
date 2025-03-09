@@ -109,7 +109,7 @@ public class Bot_1337 : IChessBot {
         }
         currentMonotonicKey = newCurrentMonotonicKey;
         if (deletedSomething) {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
         }
     }
     
