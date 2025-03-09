@@ -1,15 +1,17 @@
+using static ChessChallenge.API.PieceType;
 using System.Numerics;
+using static System.Numerics.BitOperations;
 using System.Runtime.InteropServices;
 
 namespace auto_Bot_1337;
 
-using System.Diagnostics;
 using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const int CASTLING_CONSTANT = 0xca51;
-    private const int MAX_MONOTONIC_KEY = (63 * 510) + (63 * 510 + 1) * (24 + 25 * 22) + CASTLING_CONSTANT * 15;
+    private const uint MAX_MONOTONIC_KEY = 7 * 3125 * 65535 
+                                           + (1 << 13 - 1) * (((19 * 20 + 19) * 20 + 20) * 21 + 20)
+                                           + (1 << 19 - 1) * 15;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -59,8 +61,8 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    public static SortedDictionary<int, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
-    private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
+    public static SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
+    private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -99,7 +101,7 @@ public class Bot_1337 : IChessBot {
     }
 
     public static void trimCache(Board board) {
-        int newCurrentMonotonicKey = monotonicKey(board);
+        uint newCurrentMonotonicKey = monotonicKey(board);
         if (!firstNonBookMove) return;
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         bool deletedSomething = false;
@@ -121,52 +123,63 @@ public class Bot_1337 : IChessBot {
         }
     }
     
-    public static int monotonicKey(Board board) {
-        ulong whitePawnBitboard = board.GetPieceBitboard(PieceType.Pawn, true);
-        ulong blackPawnBitboard = board.GetPieceBitboard(PieceType.Pawn, false);
+    public static uint monotonicKey(Board board) {
+        ulong whitePawnBitboard = board.GetPieceBitboard(Pawn, true);
+        ulong blackPawnBitboard = board.GetPieceBitboard(Pawn, false);
         ulong rank2PawnsKey = ((whitePawnBitboard & 0x0000_0000_0000_ff00) >> 8) 
-                              + ((blackPawnBitboard & 0x00ff_0000_0000_0000) >> 48);
+                              | ((blackPawnBitboard & 0x00ff_0000_0000_0000) >> 40);
         ulong rank3PawnsKey = ((whitePawnBitboard &   0x0000_0000_00ff_0000) >> 16) 
-                              + ((blackPawnBitboard & 0x0000_ff00_0000_0000) >> 40);
+                              | ((blackPawnBitboard & 0x0000_ff00_0000_0000) >> 32);
         ulong rank4PawnsKey = ((whitePawnBitboard &   0x0000_0000_ff00_0000) >> 24) 
-                              + ((blackPawnBitboard & 0x0000_00ff_0000_0000) >> 32);
+                              | ((blackPawnBitboard & 0x0000_00ff_0000_0000) >> 24);
         ulong rank5PawnsKey = ((whitePawnBitboard &   0x0000_00ff_0000_0000) >> 32) 
-                              + ((blackPawnBitboard & 0x0000_0000_ff00_0000) >> 24);
+                              | ((blackPawnBitboard & 0x0000_0000_ff00_0000) >> 16);
         ulong rank6PawnsKey = ((whitePawnBitboard &   0x0000_ff00_0000_0000) >> 40) 
-                              + ((blackPawnBitboard & 0x0000_0000_00ff_0000) >> 16);
+                              | ((blackPawnBitboard & 0x0000_0000_00ff_0000) >> 8);
         ulong rank7PawnsKey = ((whitePawnBitboard &   0x00ff_0000_0000_0000) >> 48) 
-                              + ((blackPawnBitboard & 0x0000_0000_0000_ff00) >> 8);
-        int pawnsKey = (int) (63 * rank2PawnsKey
-                       + 31 * rank3PawnsKey
-                       + 15 * rank4PawnsKey
-                       + 7 * rank5PawnsKey
-                       + 3 * rank6PawnsKey
+                              | ((blackPawnBitboard & 0x0000_0000_0000_ff00) >> 0);
+        uint pawnsKey = (uint) (3125 * rank2PawnsKey
+                       + 625 * rank3PawnsKey
+                       + 125 * rank4PawnsKey
+                       + 25 * rank5PawnsKey
+                       + 5 * rank6PawnsKey
                        + rank7PawnsKey);
-        ulong bishopBitboard = board.GetPieceBitboard(PieceType.Bishop, false)
-                               | board.GetPieceBitboard(PieceType.Bishop, true);
-        ulong lightBishopBitboard = bishopBitboard & 0x55aa_55aa_55aa_55aa;
-        ulong darkBishopBitboard = bishopBitboard & 0xaa55_aa55_aa55_aa55;
-        int totalPawns = BitOperations.PopCount(whitePawnBitboard) + BitOperations.PopCount(blackPawnBitboard);
-        int totalPawnsLightBishopsKnightsAndQueens = BitOperations.PopCount(board.GetPieceBitboard(PieceType.Queen, false))
-                                  + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Queen, true))
-                                  + BitOperations.PopCount(lightBishopBitboard)
-                                  + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Knight, false))
-                                  + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Knight, true))
-                                  + totalPawns;
-        int totalPawnsDarkBishopsAndRooks = BitOperations.PopCount(board.GetPieceBitboard(PieceType.Rook, false))
-                                 + BitOperations.PopCount(board.GetPieceBitboard(PieceType.Rook, true))
-                                 + BitOperations.PopCount(darkBishopBitboard)
-                                 + totalPawns;
-        int nonKingPiecesKey = totalPawnsLightBishopsKnightsAndQueens + 25 * totalPawnsDarkBishopsAndRooks;
-        int castlingKey = (board.HasQueensideCastleRight(true) ? 1 : 0)
+        ulong blackBishopBitboard = board.GetPieceBitboard(Bishop, false);
+        ulong whiteBishopBitboard = board.GetPieceBitboard(Bishop, true);
+        const ulong LIGHT_SQUARES = 0x55aa_55aa_55aa_55aa;
+        const ulong DARK_SQUARES = ~LIGHT_SQUARES;
+        uint totalPawns = (uint) (PopCount(whitePawnBitboard) + PopCount(blackPawnBitboard));
+        uint blackPawnsDarkBishopsAndRooksKey = (uint) ((PopCount(blackPawnBitboard) << 2) 
+                                             + PopCount(blackBishopBitboard & DARK_SQUARES)
+                                             + PopCount(board.GetPieceBitboard(Rook, false)));
+        uint whitePawnsDarkBishopsAndRooksKey = (uint) ((PopCount(blackPawnBitboard) << 2) 
+                                                        + PopCount(whiteBishopBitboard & LIGHT_SQUARES)
+                                                        + PopCount(board.GetPieceBitboard(Rook, false)));
+        uint blackPawnsQueensLightBishopsAndKnightsKey = (uint)(PopCount(blackPawnBitboard) * 5
+                                                                + PopCount(board.GetPieceBitboard(Knight, false))
+                                                                           + PopCount(blackBishopBitboard &
+                                                                               LIGHT_SQUARES)
+                                                                           + PopCount(board.GetPieceBitboard(Queen,
+                                                                               false)));
+        uint whitePawnsQueensLightBishopsAndKnightsKey = (uint)(PopCount(whitePawnBitboard) * 5
+                                                                + PopCount(board.GetPieceBitboard(Knight, false))
+                                                                + PopCount(whiteBishopBitboard &
+                                                                           LIGHT_SQUARES)
+                                                                + PopCount(board.GetPieceBitboard(Queen,
+                                                                    false)));
+        uint nonKingPiecesKey = ((blackPawnsDarkBishopsAndRooksKey * 20 +
+            whitePawnsDarkBishopsAndRooksKey) * 20 +
+                blackPawnsQueensLightBishopsAndKnightsKey) * 21 +
+                    whitePawnsQueensLightBishopsAndKnightsKey;
+        uint castlingKey = (uint) ((board.HasQueensideCastleRight(true) ? 1 : 0)
                           | (board.HasKingsideCastleRight(false) ? 2 : 0)
                           | (board.HasKingsideCastleRight(true) ? 4 : 0)
-                          | (board.HasQueensideCastleRight(false) ? 8 : 0);
-        return pawnsKey + (63 * 510 + 1) * nonKingPiecesKey + CASTLING_CONSTANT * castlingKey;
+                          | (board.HasQueensideCastleRight(false) ? 8 : 0));
+        return 7 * pawnsKey + (1<<13 - 1) * nonKingPiecesKey + (1<<19 - 1) * castlingKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
-        int key = monotonicKey(board);
+        uint key = monotonicKey(board);
         ulong zobristKey = board.ZobristKey;
         if (key > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
@@ -181,7 +194,7 @@ public class Bot_1337 : IChessBot {
     }
     
     private static void setAlphaBetaCacheEntry(Board board, CacheEntry value) {
-        int key = monotonicKey(board);
+        uint key = monotonicKey(board);
         ulong zobristKey = board.ZobristKey;
         if (key > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
@@ -193,7 +206,7 @@ public class Bot_1337 : IChessBot {
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
         ulong key = board.ZobristKey;
-        int monotonicKey = Bot_1337.monotonicKey(board);
+        uint monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
         var entry = getAlphaBetaCacheEntry(board);
         if (entry is {} cacheEntry) {
@@ -267,7 +280,7 @@ public class Bot_1337 : IChessBot {
             }
         }
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
-            score = EvaluatePosition(board, monotonicKey, legalMoves);
+            score = EvaluatePosition(board, legalMoves);
         }
 
         if (score < alpha) {
@@ -309,11 +322,11 @@ public class Bot_1337 : IChessBot {
     }
 
     private static bool isUnquietMove(Move move) {
-        return move.IsCapture || move.MovePieceType == PieceType.Pawn;
+        return move.IsCapture || move.MovePieceType == Pawn;
     }
 
     // Positive favors white
-    private long EvaluatePosition(Board board, int monotonicKey, Span<Move> legalMoves) { 
+    private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
         bool isInCheck = board.IsInCheck();
@@ -364,7 +377,7 @@ public class Bot_1337 : IChessBot {
                 PieceType pieceType = board.GetPieceType(square);
                 bool pieceIsWhite = board.IsWhitePiece(square);
                 long pieceValue = PIECE_VALUES[(int)pieceType]; 
-                if (pieceType == PieceType.Pawn) {
+                if (pieceType == Pawn) {
                     int rank = square >> 3;
                     pieceValue += (pieceIsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
                         [rank];
@@ -384,7 +397,7 @@ public class Bot_1337 : IChessBot {
         for (int square = 0; square < 64; square++) {
             PieceType pieceType = board.GetPieceType(square);
             bool pieceIsWhite = board.IsWhitePiece(square);
-            if (pieceType != PieceType.None) {
+            if (pieceType != None) {
                 long pieceBonus = 0;
                 Square enemyKingSquare = board.GetKingSquare(!pieceIsWhite);
                 int distance = CalculateKingDistance(square, enemyKingSquare.Index);
@@ -393,7 +406,7 @@ public class Bot_1337 : IChessBot {
                 int file = square & 7;
                 pieceBonus += (pieceIsWhite ? WHITE_RANK_ADVANCEMENT_VALUES : BLACK_RANK_ADVANCEMENT_VALUES)[rank]
                     * PIECE_RANK_PUSH_VALUES[(int)pieceType];
-                if (rank != (pieceIsWhite ? 0 : 7) && pieceType != PieceType.Rook) {
+                if (rank != (pieceIsWhite ? 0 : 7) && pieceType != Rook) {
                     pieceBonus -= FILE_CENTER_DISTANCE_VALUES[file]
                                   * PIECE_FILE_PUSH_VALUES[(int)pieceType];
                 }
