@@ -23,20 +23,23 @@ do {
     apiBoard.MakeMove(move);
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
-    if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
-        monotonicKey = Bot_1337.monotonicKey(apiBoard);
-        if (monotonicKey != oldMonotonicKey) {
-            Bot_1337.trimCache(monotonicKey);
-            oldMonotonicKey = monotonicKey;
+    if (Bot_1337.firstNonBookMove) {
+        if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
+            monotonicKey = Bot_1337.monotonicKey(apiBoard);
+            if (monotonicKey != oldMonotonicKey) {
+                Bot_1337.trimCache(monotonicKey);
+                oldMonotonicKey = monotonicKey;
+            }
         }
-    }
 
-    var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(apiBoard);
-    if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
-        // Handles false positives due to Zobrist collision
-        result = Arbiter.GetGameState(board);
-    } else if (Arbiter.isThreefoldRepetition(board)) {
-        result = GameResult.Repetition;
+        var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(apiBoard);
+        if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
+            // Handles false positives due to Zobrist collision
+            result = Arbiter.GetGameState(board);
+        }
+        else if (Arbiter.isThreefoldRepetition(board)) {
+            result = GameResult.Repetition;
+        }
     }
 } while (result == GameResult.InProgress);
 Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));

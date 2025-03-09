@@ -34,7 +34,7 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
     private static Random random = new();
     private const long BARE_KING_EVAL = 100_000_000_000L;
-    private static bool firstNonBookMove = false;
+    public static bool firstNonBookMove = false;
 
     // Make the struct readonly and add StructLayout attribute
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -58,7 +58,7 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache = new Dictionary<ulong, CacheEntry>?[MAX_MONOTONIC_KEY + 1];
+    public static Dictionary<ulong, CacheEntry>?[] alphaBetaCache;
     private static int currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     public Move Think(Board board, Timer timer) {
@@ -72,6 +72,7 @@ public class Bot_1337 : IChessBot {
 
         if (!firstNonBookMove) {
             currentMonotonicKey = monotonicKey(board);
+            alphaBetaCache = new Dictionary<ulong, CacheEntry>?[currentMonotonicKey + 1];
             firstNonBookMove = true;
         }
 
@@ -99,6 +100,7 @@ public class Bot_1337 : IChessBot {
     }
 
     public static void trimCache(int newCurrentMonotonicKey) {
+        if (!firstNonBookMove) return;
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         bool deletedSomething = false;
         for (int i = newCurrentMonotonicKey + 1; i < currentMonotonicKey; i++) {
