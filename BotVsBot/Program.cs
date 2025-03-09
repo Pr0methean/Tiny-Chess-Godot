@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using auto_Bot_1337;
-using ChessChallenge.API;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
@@ -14,8 +13,6 @@ bool whiteToMove = true;
 
 ChessChallenge.API.Board apiBoard = new(board);
 GameResult result = GameResult.InProgress;
-int monotonicKey;
-int oldMonotonicKey = Bot_1337.MAX_MONOTONIC_KEY;
 do {
     Bot_1337 botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
@@ -24,14 +21,7 @@ do {
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
     if (Bot_1337.firstNonBookMove) {
-        if (move.IsCapture || move.MovePieceType == PieceType.Pawn) {
-            monotonicKey = Bot_1337.monotonicKey(apiBoard);
-            if (monotonicKey != oldMonotonicKey) {
-                Bot_1337.trimCache(monotonicKey);
-                oldMonotonicKey = monotonicKey;
-            }
-        }
-
+        Bot_1337.trimCache(apiBoard);
         var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(apiBoard);
         if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
             // Handles false positives due to Zobrist collision

@@ -8,7 +8,8 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    public static int MAX_MONOTONIC_KEY = (63 * 510) + (63 * 510 + 1) * (24 + 25 * 22);
+    private const int CASTLING_CONSTANT = 0xca51;
+    public const int MAX_MONOTONIC_KEY = (63 * 510) + (63 * 510 + 1) * (24 + 25 * 22) + CASTLING_CONSTANT * 15;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -97,7 +98,8 @@ public class Bot_1337 : IChessBot {
         return bestMove;
     }
 
-    public static void trimCache(int newCurrentMonotonicKey) {
+    public static void trimCache(Board board) {
+        int newCurrentMonotonicKey = monotonicKey(board);
         if (!firstNonBookMove) return;
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         bool deletedSomething = false;
@@ -156,7 +158,11 @@ public class Bot_1337 : IChessBot {
                                  + BitOperations.PopCount(darkBishopBitboard)
                                  + totalPawns;
         int nonKingPiecesKey = totalPawnsLightBishopsKnightsAndQueens + 25 * totalPawnsDarkBishopsAndRooks;
-        return pawnsKey + (63 * 510 + 1) * nonKingPiecesKey;
+        int castlingKey = (board.HasQueensideCastleRight(true) ? 1 : 0)
+                          | (board.HasKingsideCastleRight(false) ? 2 : 0)
+                          | (board.HasKingsideCastleRight(true) ? 4 : 0)
+                          | (board.HasQueensideCastleRight(false) ? 8 : 0);
+        return pawnsKey + (63 * 510 + 1) * nonKingPiecesKey + CASTLING_CONSTANT * castlingKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
