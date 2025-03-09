@@ -203,9 +203,15 @@ public class Bot_1337 : IChessBot {
 
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
-        ulong key = board.ZobristKey;
-        uint monotonicKey = Bot_1337.monotonicKey(board);
         // Cache lookup
+        long score;
+        bool storeEndgame = false;
+        if (board.IsRepeatedPosition() || board.IsFiftyMoveDraw()) {
+            // Zobrist key doesn't consider repetition or 50-move rule, so they may invalidate the cache
+            score = evaluateDraw(EvaluateMaterial(board));
+            storeEndgame = true;
+            goto cacheStore;
+        }
         var entry = getAlphaBetaCacheEntry(board);
         if (entry is {} cacheEntry) {
             if (cacheEntry.TotalDepth >= totalDepth || cacheEntry.QuietDepth >= quietDepth) {
@@ -216,9 +222,7 @@ public class Bot_1337 : IChessBot {
         if (alpha >= beta) {
             return maximizingPlayer ? beta : alpha;
         }
-        long score;
-        bool storeEndgame = false;
-        if (board.IsInsufficientMaterial() || board.IsFiftyMoveDraw()) {
+        if (board.IsInsufficientMaterial()) {
             score = evaluateDraw(EvaluateMaterial(board));
             storeEndgame = true;
             goto cacheStore;
