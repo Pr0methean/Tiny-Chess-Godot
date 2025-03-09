@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
+﻿using static ChessChallenge.API.PieceType;
+using System.Diagnostics;
 using auto_Bot_1337;
-using ChessChallenge.API;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
@@ -19,10 +19,10 @@ do {
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
     Debug.WriteLine("Chosen move: " + move);
     apiBoard.MakeMove(move);
-    whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
     if (Bot_1337.firstNonBookMove) {
-        if (move.IsCapture || move.MovePieceType is PieceType.Pawn or PieceType.King or PieceType.Rook) {
+        if (move.IsCapture || move.MovePieceType == Pawn 
+                           || (move.MovePieceType is King or Rook && move.StartSquare.Rank == (whiteToMove ? 0 : 7))) {
             Bot_1337.trimCache(apiBoard);
         }
 
@@ -35,6 +35,7 @@ do {
             result = GameResult.Repetition;
         }
     }
+    whiteToMove = !whiteToMove;
 } while (result == GameResult.InProgress);
 Console.WriteLine(PGNCreator.CreatePGN_InGameFormat(board, board.AllGameMoves.ToArray()));
 Console.WriteLine(result);

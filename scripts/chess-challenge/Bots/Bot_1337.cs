@@ -1,5 +1,4 @@
 using static ChessChallenge.API.PieceType;
-using System.Numerics;
 using static System.Numerics.BitOperations;
 using System.Runtime.InteropServices;
 
