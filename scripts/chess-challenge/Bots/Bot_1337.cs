@@ -8,8 +8,8 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const uint MAX_MONOTONIC_KEY = 7 * 3125 * 65535 
-                                           + (1 << 13 - 1) * (((19 * 20 + 19) * 20 + 20) * 21 + 20)
+    private const uint MAX_MONOTONIC_KEY = 16807 * 65535 
+                                           + 127 * (((35 * 36 + 35) * 45 + 44) * 45 + 44)
                                            + (1 << 19 - 1) * 15;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
@@ -137,17 +137,16 @@ public class Bot_1337 : IChessBot {
                               | ((blackPawnBitboard & 0x0000_0000_00ff_0000) >> 8);
         ulong rank7PawnsKey = ((whitePawnBitboard &   0x00ff_0000_0000_0000) >> 48) 
                               | ((blackPawnBitboard & 0x0000_0000_0000_ff00) >> 0);
-        uint pawnsKey = (uint) (3125 * rank2PawnsKey
-                       + 625 * rank3PawnsKey
-                       + 125 * rank4PawnsKey
-                       + 25 * rank5PawnsKey
-                       + 5 * rank6PawnsKey
+        uint pawnsKey = (uint) (16807 * rank2PawnsKey
+                       + 2401 * rank3PawnsKey
+                       + 343 * rank4PawnsKey
+                       + 49 * rank5PawnsKey
+                       + 7 * rank6PawnsKey
                        + rank7PawnsKey);
         ulong blackBishopBitboard = board.GetPieceBitboard(Bishop, false);
         ulong whiteBishopBitboard = board.GetPieceBitboard(Bishop, true);
         const ulong LIGHT_SQUARES = 0x55aa_55aa_55aa_55aa;
         const ulong DARK_SQUARES = ~LIGHT_SQUARES;
-        uint totalPawns = (uint) (PopCount(whitePawnBitboard) + PopCount(blackPawnBitboard));
         uint blackPawnsDarkBishopsAndRooksKey = (uint) ((PopCount(blackPawnBitboard) << 2) 
                                              + PopCount(blackBishopBitboard & DARK_SQUARES)
                                              + PopCount(board.GetPieceBitboard(Rook, false)));
@@ -166,15 +165,15 @@ public class Bot_1337 : IChessBot {
                                                                            LIGHT_SQUARES)
                                                                 + PopCount(board.GetPieceBitboard(Queen,
                                                                     false)));
-        uint nonKingPiecesKey = ((blackPawnsDarkBishopsAndRooksKey * 20 +
-            whitePawnsDarkBishopsAndRooksKey) * 20 +
-                blackPawnsQueensLightBishopsAndKnightsKey) * 21 +
+        uint nonKingPiecesKey = ((blackPawnsDarkBishopsAndRooksKey * 36 +
+            whitePawnsDarkBishopsAndRooksKey) * 45 +
+                blackPawnsQueensLightBishopsAndKnightsKey) * 45 +
                     whitePawnsQueensLightBishopsAndKnightsKey;
         uint castlingKey = (uint) ((board.HasQueensideCastleRight(true) ? 1 : 0)
                           | (board.HasKingsideCastleRight(false) ? 2 : 0)
                           | (board.HasKingsideCastleRight(true) ? 4 : 0)
                           | (board.HasQueensideCastleRight(false) ? 8 : 0));
-        return 7 * pawnsKey + (1<<13 - 1) * nonKingPiecesKey + (1<<19 - 1) * castlingKey;
+        return pawnsKey + 127 * nonKingPiecesKey + (1<<19 - 1) * castlingKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
