@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using auto_Bot_1337;
+using ChessChallenge.API;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
 using Move = ChessChallenge.Chess.Move;
@@ -21,7 +22,10 @@ do {
     whiteToMove = !whiteToMove;
     board.MakeMove(new Move(move.RawValue), false);
     if (Bot_1337.firstNonBookMove) {
-        Bot_1337.trimCache(apiBoard);
+        if (move.IsCapture || move.MovePieceType is PieceType.Pawn or PieceType.King or PieceType.Rook) {
+            Bot_1337.trimCache(apiBoard);
+        }
+
         var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(apiBoard);
         if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
             // Handles false positives due to Zobrist collision
