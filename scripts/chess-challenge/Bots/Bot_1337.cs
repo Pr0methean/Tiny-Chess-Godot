@@ -60,7 +60,7 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    public static SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
+    private static readonly SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
     private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
 
     public Move Think(Board board, Timer timer) {
@@ -87,7 +87,7 @@ public class Bot_1337 : IChessBot {
         board.GetLegalMovesNonAlloc(ref legalMoves);
         foreach (var move in legalMoves) {
             board.MakeMove(move);
-            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), (byte) (MAX_TOTAL_DEPTH - 1), -INFINITY, INFINITY, !board.IsWhiteToMove);
+            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
 
             if (bestMove.IsNull || value > bestValue || (value == bestValue && random.Next(2) != 0)) {
                 bestValue = value;
@@ -121,8 +121,8 @@ public class Bot_1337 : IChessBot {
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
         }
     }
-    
-    public static uint monotonicKey(Board board) {
+
+    private static uint monotonicKey(Board board) {
         ulong whitePawnBitboard = board.GetPieceBitboard(Pawn, true);
         ulong blackPawnBitboard = board.GetPieceBitboard(Pawn, false);
         ulong rank2PawnsKey = ((whitePawnBitboard & 0x0000_0000_0000_ff00) >> 8) 
@@ -346,7 +346,7 @@ public class Bot_1337 : IChessBot {
         if (!isInCheck) {
             board.MakeMove(Move.NullMove);
             var entry = getAlphaBetaCacheEntry(board);
-            if (entry is { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
+            if (entry is not { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
                 Span<Move> opponentLegalMoves = stackalloc Move[128];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
                 evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
