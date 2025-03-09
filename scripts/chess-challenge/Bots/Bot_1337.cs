@@ -119,13 +119,11 @@ public class Bot_1337 : IChessBot {
             if (lastKey <= newCurrentMonotonicKey) {
                 break;
             }
-            if (!deletedSomething) {
-                deletedSomething = alphaBetaCache[lastKey].Count > 0;
-            }
             alphaBetaCache.Remove(lastKey);
+            deletedSomething = true;
         }
         if (deletedSomething) {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
         }
     }
 
