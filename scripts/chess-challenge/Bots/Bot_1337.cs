@@ -258,8 +258,11 @@ public class Bot_1337 : IChessBot {
         bool foundNonQuietMove = false;
         score = maximizingPlayer ? -INFINITY : INFINITY;
         
-        // Sort descending by captured piece type
-        legalMoves.Sort((a, b) => -a.CapturePieceType.CompareTo(b.CapturePieceType));
+        // Sort descending by promoted piece type, then by captured piece type
+        legalMoves.Sort((a, b) => {
+            int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
+            return promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);  
+        });
         
         if (totalDepth > 0) {
             foreach (var move in legalMoves) {
@@ -279,10 +282,10 @@ public class Bot_1337 : IChessBot {
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
-                    alpha = Math.Max(alpha, eval);
+                    alpha = Math.Max(alpha, score);
                 } else {
                     score = Math.Min(score, eval);
-                    beta = Math.Min(beta, eval);
+                    beta = Math.Min(beta, score);
                 }
                 if (beta <= alpha)
                     break;
