@@ -271,6 +271,14 @@ namespace ChessChallenge.API
             return new Piece((PieceType)PieceHelper.PieceType(p), white, square);
         }
 
+        public PieceType GetPieceType(int squareIndex) {
+            return (PieceType)PieceHelper.PieceType(board.Square[squareIndex]);
+        }
+
+        public bool IsWhitePiece(int squareIndex) {
+            return PieceHelper.IsWhite(board.Square[squareIndex]);
+        }
+        
         /// <summary>
         /// Gets a list of pieces of the given type and colour
         /// </summary>

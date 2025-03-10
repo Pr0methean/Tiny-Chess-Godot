@@ -47,12 +47,7 @@
                 return GameResult.FiftyMoveRule;
             }
 
-            // Threefold repetition
-            int repCount = board.RepetitionPositionHistory.Count((x => x == board.currentGameState.zobristKey));
-            if (repCount == 3)
-            {
-                return GameResult.Repetition;
-            }
+            if (isThreefoldRepetition(board)) return GameResult.Repetition;
 
             // Look for insufficient material
             if (InsufficentMaterial(board))
@@ -60,6 +55,15 @@
                 return GameResult.InsufficientMaterial;
             }
             return GameResult.InProgress;
+        }
+
+        public static bool isThreefoldRepetition(Board board) {
+            // Threefold repetition
+            int repCount = board.RepetitionPositionHistory.Count((x => x == board.currentGameState.zobristKey));
+            if (repCount == 3) {
+                return true;
+            }
+            return false;
         }
 
         // Test for insufficient material (Note: not all cases are implemented)
