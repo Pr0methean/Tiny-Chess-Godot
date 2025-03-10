@@ -10,7 +10,7 @@ using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
     private const uint MAX_MONOTONIC_KEY = 2 * 16807U * 65535U 
-                                           + (((((((((9 * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 11 + 10) * 11 + 10) * 11 + 10) * 11 + 10)
+                                           + 3 * (((((((((9 * 5 + 9) * 5 + 1) * 5 + 1) * 5 + 1) * 5 + 1) * 11 + 2) * 11 + 2) * 11 + 2) * 11 + 2)
                                            + 127 * (1 << 19 - 1) * 15U;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
@@ -152,31 +152,31 @@ public class Bot_1337 : IChessBot {
         const ulong DARK_SQUARES = ~LIGHT_SQUARES;
         uint blackPawnCount = (uint) PopCount(blackPawnBitboard);
         uint blackPawnsAndDarkBishops = blackPawnCount + (uint) PopCount(blackBishopBitboard & DARK_SQUARES);
-        uint blackPawnsAndLightBishops = blackPawnCount + (uint)PopCount(blackBishopBitboard & LIGHT_SQUARES);
-        uint blackPawnsAndKnights = blackPawnCount + (uint) PopCount(board.GetPieceBitboard(Knight, false));
-        uint blackPawnsAndRooks = blackPawnCount + (uint) PopCount(board.GetPieceBitboard(Rook, false));
-        uint blackPawnsAndQueens = blackPawnCount + (uint) PopCount(board.GetPieceBitboard(Queen, false));
+        uint blackLightBishops = (uint)PopCount(blackBishopBitboard & LIGHT_SQUARES);
+        uint blackKnights = (uint) PopCount(board.GetPieceBitboard(Knight, false));
+        uint blackRooks = (uint) PopCount(board.GetPieceBitboard(Rook, false));
+        uint blackQueens = (uint) PopCount(board.GetPieceBitboard(Queen, false));
         uint whitePawnCount = (uint) PopCount(whitePawnBitboard);
-        uint whitePawnsAndDarkBishops = whitePawnCount + (uint) PopCount(whiteBishopBitboard & DARK_SQUARES);
         uint whitePawnsAndLightBishops = whitePawnCount + (uint)PopCount(whiteBishopBitboard & LIGHT_SQUARES);
-        uint whitePawnsAndKnights = whitePawnCount + (uint) PopCount(board.GetPieceBitboard(Knight, true));
-        uint whitePawnsAndRooks = whitePawnCount + (uint) PopCount(board.GetPieceBitboard(Rook, true));
-        uint whitePawnsAndQueens = whitePawnCount + (uint) PopCount(board.GetPieceBitboard(Queen, true));
+        uint whiteDarkBishops = (uint) PopCount(whiteBishopBitboard & DARK_SQUARES);
+        uint whiteKnights = (uint) PopCount(board.GetPieceBitboard(Knight, true));
+        uint whiteRooks = (uint) PopCount(board.GetPieceBitboard(Rook, true));
+        uint whiteQueens = (uint) PopCount(board.GetPieceBitboard(Queen, true));
         uint nonKingPiecesKey = ((((((((blackPawnsAndDarkBishops * 5
-                                        + blackPawnsAndLightBishops) * 5
-                                       + blackPawnsAndQueens) * 5
-                                      + whitePawnsAndDarkBishops) * 5
-                                     + whitePawnsAndLightBishops) * 5
-                                    + whitePawnsAndQueens) * 11
-                                   + blackPawnsAndKnights) * 11
-                                  + blackPawnsAndRooks) * 11
-                                 + whitePawnsAndKnights) * 11
-                                + whitePawnsAndRooks;
+                                        + whitePawnsAndLightBishops) * 5
+                                        + blackLightBishops) * 5
+                                        + whiteDarkBishops) * 5
+                                      + blackQueens) * 5
+                                    + whiteQueens) * 11
+                                   + blackKnights) * 11
+                                  + blackRooks) * 11
+                                 + whiteKnights) * 11
+                                + whiteRooks;
         uint castlingKey = (uint) ((board.HasQueensideCastleRight(true) ? 1 : 0)
                                                                    | (board.HasKingsideCastleRight(false) ? 2 : 0)
                                                                    | (board.HasKingsideCastleRight(true) ? 4 : 0)
                                                                    | (board.HasQueensideCastleRight(false) ? 8 : 0));
-        return 2 * pawnsKey + nonKingPiecesKey + 127 * (1<<19 - 1) * castlingKey;
+        return 2 * pawnsKey + 3 * nonKingPiecesKey + 127 * (1<<19 - 1) * castlingKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
