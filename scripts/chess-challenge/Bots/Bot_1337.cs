@@ -65,6 +65,13 @@ public class Bot_1337 : IChessBot {
     private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
+    private static void sortLegalMovesPromisingFirst(ref Span<Move> moves) {
+        moves.Sort((a, b) => {
+            int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
+            return promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);  
+        });
+    }
+
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
         if (board.PlyCount < 32) {
@@ -88,6 +95,7 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
+        sortLegalMovesPromisingFirst(ref legalMoves);
         foreach (var move in legalMoves) {
             board.MakeMove(move);
             long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board));
@@ -263,10 +271,7 @@ public class Bot_1337 : IChessBot {
         score = maximizingPlayer ? -INFINITY : INFINITY;
         
         // Sort descending by promoted piece type, then by captured piece type
-        legalMoves.Sort((a, b) => {
-            int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
-            return promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);  
-        });
+        sortLegalMovesPromisingFirst(ref legalMoves);
         
         if (totalDepth > 0) {
             foreach (var move in legalMoves) {
