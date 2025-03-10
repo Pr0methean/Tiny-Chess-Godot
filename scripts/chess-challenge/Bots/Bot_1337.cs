@@ -327,7 +327,7 @@ public class Bot_1337 : IChessBot {
     }
 
     // Positive favors white
-    private long EvaluatePosition(Board board, Span<Move> legalMoves) { 
+    public long EvaluatePosition(Board board, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
         bool isInCheck = board.IsInCheck();
@@ -357,7 +357,7 @@ public class Bot_1337 : IChessBot {
     }
 
     // Positive favors white. Cache shared between both sides.
-    private static long EvaluateMaterial(Board board) {
+    public static long EvaluateMaterial(Board board) {
         // Material and passed-pawn evaluation
         long evaluation = 0;
         if (isBareKing(board.WhitePiecesBitboard)) {
