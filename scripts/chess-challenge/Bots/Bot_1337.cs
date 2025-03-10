@@ -62,6 +62,7 @@ public class Bot_1337 : IChessBot {
 
     private static readonly SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
     private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
+    private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -110,19 +111,11 @@ public class Bot_1337 : IChessBot {
         uint newCurrentMonotonicKey = monotonicKey(board);
         Debug.WriteLine("New monotonic key is {}", newCurrentMonotonicKey);
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
-        bool deletedSomething = false;
         currentMonotonicKey = newCurrentMonotonicKey;
-        while (true) {
-            var lastKey = alphaBetaCache.Keys.LastOrDefault();
-            if (lastKey <= newCurrentMonotonicKey) {
-                break;
-            }
-            alphaBetaCache.Remove(lastKey);
-            deletedSomething = true;
-        }
-        if (deletedSomething) {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
-        }
+        alphaBetaCache.Keys.SkipWhile(k => k <= newCurrentMonotonicKey)
+            .ToList().ForEach(k => alphaBetaCache.Remove(k));
+        currentKeyCache = null;
+        alphaBetaCache.TryGetValue(currentMonotonicKey, out currentKeyCache);
     }
 
     public static uint monotonicKey(Board board) {
@@ -183,7 +176,14 @@ public class Bot_1337 : IChessBot {
         if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        if (!alphaBetaCache.TryGetValue(monotonicKey, out var cacheForMonotonicKey)) {
+        Dictionary<ulong, CacheEntry>? cacheForMonotonicKey;
+        if (monotonicKey == currentMonotonicKey) {
+            cacheForMonotonicKey = currentKeyCache;
+        }
+        else {
+            alphaBetaCache.TryGetValue(monotonicKey, out cacheForMonotonicKey);
+        }
+        if (cacheForMonotonicKey == null) {
             return null;
         }
         ulong zobristKey = board.ZobristKey;
@@ -198,8 +198,18 @@ public class Bot_1337 : IChessBot {
         if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        alphaBetaCache.TryAdd(monotonicKey, new Dictionary<ulong, CacheEntry>());
-        alphaBetaCache[monotonicKey][zobristKey] = value;
+        if (monotonicKey != currentMonotonicKey) {
+            var newCache = new Dictionary<ulong, CacheEntry>();
+            if (alphaBetaCache.TryAdd(monotonicKey, newCache)) {
+                newCache[zobristKey] = value;
+            } else {
+                alphaBetaCache[monotonicKey][zobristKey] = value;
+            }
+        } else if (currentKeyCache == null) {
+            currentKeyCache = new Dictionary<ulong, CacheEntry>();
+            currentKeyCache[zobristKey] = value;
+            alphaBetaCache.Add(monotonicKey, currentKeyCache);
+        }
     }
 
 
