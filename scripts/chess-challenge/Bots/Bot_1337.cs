@@ -35,9 +35,8 @@ public class Bot_1337 : IChessBot {
     }
     
     private static Dictionary<ulong,  CacheableBoardState> cacheableBoardStateZobrist = new();
-    private static Dictionary<ulong, Dictionary<ushort, ulong>> moveResults = new();
-    private Dictionary<(ushort, ulong), long> shortEvalCache = new();
-    private Dictionary<(ulong, ulong), long> longEvalCache = new();
+    private Dictionary<UInt128, long> moveScoreZobrist = new();
+    private Dictionary<ulong, long> responseScoreZobrist = new();
 
     public Move Think(Board board, Timer timer) {
         // [Seb tweak start]- (adding tiny opening book for extra variety when playing against humans)
@@ -80,12 +79,59 @@ public class Bot_1337 : IChessBot {
                         if (mateOrDraw != null) {
                             return (long)mateOrDraw;
                         }
+
                         Debug.WriteLine("Evaluating {0}", move);
                         long bestResponseScoreRelBaseline = -responseScoreZobrist.GetOrCreate(board.ZobristKey, () => {
                             Debug.WriteLine("Responses: {0}", boardStateAfterMove.legalMoves.Length);
                             long bestResponseScore = long.MinValue;
                             foreach (var response in boardStateAfterMove.legalMoves) {
-                                var responseScore = ShortEvalMove(board, response, 1);
+                                board.MakeMove(response);
+                                var boardStateAfterResponse = getCacheableState(board);
+                                long responseScore;
+                                var mateOrDrawInResponse = boardStateAfterResponse.mateOrDrawEval;
+                                if (mateOrDrawInResponse != null) {
+                                    responseScore = (long) (mateOrDrawInResponse);
+                                } else {
+                                    long responseCaptureBonus = evalCaptureBonus(board, response, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
+                                    long responseCheckBonus = board.IsInCheck() ? ENEMY_CHECK_BONUS : 0;
+                                    long responsePromotionBonus = response.IsPromotion
+                                        ? PIECE_VALUES[(int)response.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
+                                        : 0;
+                                    long bestResponseToResponseScore = long.MinValue;
+                                    foreach (var responseToResponse in boardStateAfterResponse.legalMoves) {
+                                        board.MakeMove(responseToResponse);
+                                        long responseToResponseScore;
+                                        if (!moveScoreZobrist.TryGetValue(board.ZobristKey | (UInt128)responseToResponse.RawValue << 64,
+                                                out responseToResponseScore)) {
+                                            var boardStateAfterResponseToResponse = getCacheableState(board);
+                                            if (boardStateAfterResponseToResponse.mateOrDrawEval != null) {
+                                                responseToResponseScore =
+                                                    (long) boardStateAfterResponseToResponse.mateOrDrawEval;
+                                            }
+                                            else {
+                                                responseToResponseScore = evalCaptureBonus(board, responseToResponse, iAmWhite,
+                                                    ENEMY_PIECE_VALUE_MULTIPLIER);
+                                                long bestResponseToResponseToResponse;
+                                                if (responseScoreZobrist.TryGetValue(board.ZobristKey, out bestResponseToResponseToResponse)) {
+                                                    if (bestResponseToResponseToResponse > 0) {
+                                                        responseToResponseScore -= bestResponseToResponseToResponse;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        board.UndoMove(responseToResponse);
+                                        if (responseToResponseScore >= 1_000_000_000_000) {
+                                            bestResponseToResponseScore = responseToResponseScore;
+                                            break;
+                                        }
+                                        if (responseToResponseScore > bestResponseToResponseScore) {
+                                            bestResponseToResponseScore = responseToResponseScore;
+                                        }
+                                    }
+
+                                    responseScore = responseCaptureBonus + responseCheckBonus + responsePromotionBonus -
+                                                    bestResponseToResponseScore;
+                                }
                                 Debug.WriteLine("Response {0} has score {1}", response, responseScore);
                                 board.UndoMove(response);
                                 if (responseScore >= 1_000_000_000_000) {
@@ -205,60 +251,6 @@ public class Bot_1337 : IChessBot {
         }
 
         return (Move)bestMove!;
-    }
-
-    private long ShortEvalMove(Board boardBeforeMove, Move move, uint depth) {
-        long keyAfterMove = moveResults.GetOrCreate((boardBeforeMove.ZobristKey, (ushort)move.RawValue),
-            () => {
-                boardBeforeMove.MakeMove(move);
-                ulong key = boardBeforeMove.ZobristKey;
-                boardBeforeMove.UndoMove(move);
-                return key;
-            });
-        long cachedResponse;
-        if (longEvalCache.TryGetValue((move.RawValue, keyAfterMove), out cachedResponse)) {
-            return cachedResponse;
-        }
-        return shortEvalCache.GetOrCreate((move.RawValue, keyAfterMove), () => {
-            bool iAmWhite = boardBeforeMove.IsWhiteToMove;
-            boardBeforeMove.MakeMove(move);
-            var boardStateAfterResponse = getCacheableState(boardBeforeMove);
-            var mateOrDrawInResponse = boardStateAfterResponse.mateOrDrawEval;
-            if (mateOrDrawInResponse != null) {
-                return (long)(mateOrDrawInResponse);
-            }
-
-            long responseCaptureBonus = evalCaptureBonus(boardBeforeMove, move, !iAmWhite, MY_PIECE_VALUE_MULTIPLIER);
-            long responseCheckBonus = boardBeforeMove.IsInCheck() ? ENEMY_CHECK_BONUS : 0;
-            long responsePromotionBonus = move.IsPromotion
-                ? PIECE_VALUES[(int)move.PromotionPieceType] * ENEMY_PIECE_VALUE_MULTIPLIER
-                : 0;
-            long responseScore = responseCaptureBonus + responseCheckBonus + responsePromotionBonus;
-            if (depth == 0) return responseScore;
-            long bestResponseToResponseScore = long.MinValue;
-            foreach (var responseToResponse in boardStateAfterResponse.legalMoves) {
-                long responseScore;
-                if (!shortEvalCache.TryGetValue((responseToResponse.RawValue, boardBeforeMove
-                        out responseScore) && depth >= 1) {
-                    responseScore = ShortEvalMove(boardBeforeMove, responseToResponse, depth - 1);
-                }
-
-                if (responseScore >= 1_000_000_000_000) {
-                    bestResponseToResponseScore = responseScore;
-                    break;
-                }
-
-                if (responseScore > bestResponseToResponseScore) {
-                    bestResponseToResponseScore = responseScore;
-                }
-            }
-
-            return bestResponseToResponseScore;
-        });
-    }
-
-    private long LongEvalMove(Board board, Move response, uint longDepth, uint shortDepth) {
-        
     }
 
     private long getMinOpptMovesBaseline(Board board) {
