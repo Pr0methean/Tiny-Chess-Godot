@@ -22,8 +22,7 @@ public class Bot_1337 : IChessBot {
     private const long CHECK_PENALTY = 1_000_000_000;
 
     private const long FIFTY_MOVE_COUNTER_PENALTY = 100;
-    private const long MIN_DRAW_VALUE_WHEN_BEHIND = 100 * 100 * 100 * FIFTY_MOVE_COUNTER_PENALTY;
-    private const long MAX_DRAW_VALUE_WHEN_BEHIND = 2 * MIN_DRAW_VALUE_WHEN_BEHIND;
+    private const long DRAW_VALUE_WHEN_BEHIND = 100 * 100 * 100 * FIFTY_MOVE_COUNTER_PENALTY;
     // private const long CHECK_BONUS = 1_000_000;
     // private const long CASTLING_BONUS = 2_000_000;
     private static readonly long[] PIECE_VALUES = [0, 100, 305, 333, 563, 950, 0];
@@ -430,11 +429,11 @@ public class Bot_1337 : IChessBot {
 
         if (materialEval < 0) {
             // Black is ahead on material, so white favors the draw
-            return random.NextInt64(MIN_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
+            return DRAW_VALUE_WHEN_BEHIND;
         }
-        else if (materialEval > 0) {
+        if (materialEval > 0) {
             // White is ahead on material, so black favors the draw
-            return -random.NextInt64(MIN_DRAW_VALUE_WHEN_BEHIND, MAX_DRAW_VALUE_WHEN_BEHIND);
+            return -DRAW_VALUE_WHEN_BEHIND;
         }
 
         return 0;
