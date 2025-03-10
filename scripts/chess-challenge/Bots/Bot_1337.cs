@@ -100,11 +100,15 @@ public class Bot_1337 : IChessBot {
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         sortLegalMovesPromisingFirst(ref legalMoves);
+        bool iAmWhite = board.IsWhiteToMove;
         foreach (var move in legalMoves) {
             bool unquiet = isUnquietMove(move);
             board.MakeMove(move);
-            long value = -AlphaBeta(board, (sbyte) (QUIET_DEPTH - (unquiet ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board), unquiet);
+            long value = AlphaBeta(board, (sbyte) (QUIET_DEPTH - (unquiet ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !iAmWhite, Bot_1337.monotonicKey(board), unquiet);
             board.UndoMove(move);
+            if (!iAmWhite) {
+                value = -value;
+            }
             if (value >= INFINITY) {
                 return move;
             }
