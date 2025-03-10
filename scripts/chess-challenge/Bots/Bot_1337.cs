@@ -9,9 +9,9 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const uint MAX_MONOTONIC_KEY = 16807 * 65535 
+    private const uint MAX_MONOTONIC_KEY = 2U * 16807U * 65535U 
                                            + 31 * (((((((((9 * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 10) * 5 + 10) * 5 + 10) * 5 + 10)
-                                           + (1 << 19 - 1) * 15;
+                                           + 3 * (1 << 19 - 1) * 15U;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
     private const long INFINITY = 1_000_000_000_000;
@@ -176,7 +176,7 @@ public class Bot_1337 : IChessBot {
                                                                    | (board.HasKingsideCastleRight(false) ? 2 : 0)
                                                                    | (board.HasKingsideCastleRight(true) ? 4 : 0)
                                                                    | (board.HasQueensideCastleRight(false) ? 8 : 0));
-        return pawnsKey + 31 * nonKingPiecesKey + (1<<19 - 1) * castlingKey;
+        return 2 * pawnsKey + 31 * nonKingPiecesKey + 3 * (1<<19 - 1) * castlingKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
