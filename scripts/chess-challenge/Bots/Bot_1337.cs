@@ -248,18 +248,30 @@ public class Bot_1337 : IChessBot {
         }
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry) {
-            // If lower bound is >= beta, this is a beta cutoff
+            // For positions after unquiet moves, use cached bounds more conservatively
+            if (previousMoveWasUnquiet || board.IsInCheck()) {
+                // Only use definitive cutoffs from cached bounds
+                if (cacheEntry.LowerBound >= beta) {
+                    return beta;  // Safe beta cutoff
+                }
+                if (cacheEntry.UpperBound <= alpha) {
+                    return alpha; // Safe alpha cutoff
+                }
+                // Don't update intermediate bounds after unquiet moves
+                return alpha;
+            }
+            
+            // For quiet positions, use full cached information
             if (cacheEntry.LowerBound >= beta) {
                 return cacheEntry.LowerBound;
             }
-            // If upper bound is <= alpha, this position can't improve alpha
             if (cacheEntry.UpperBound <= alpha) {
                 return cacheEntry.UpperBound;
             }
-            // Update bounds, but don't return yet
             alpha = Math.Max(alpha, cacheEntry.LowerBound);
             beta = Math.Min(beta, cacheEntry.UpperBound);
         }
+
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
