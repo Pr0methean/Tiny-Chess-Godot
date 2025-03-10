@@ -240,7 +240,7 @@ public class Bot_1337 : IChessBot {
             }
         }
         if (alpha >= beta) {
-            return maximizingPlayer ? beta : alpha;
+            return maximizingPlayer ? alpha : beta;
         }
         if (board.IsInsufficientMaterial()) {
             score = evaluateDraw(EvaluateMaterial(board));
@@ -262,6 +262,10 @@ public class Bot_1337 : IChessBot {
         }
         bool foundNonQuietMove = false;
         score = maximizingPlayer ? -INFINITY : INFINITY;
+        
+        // Sort descending by captured piece type
+        legalMoves.Sort((a, b) => -a.CapturePieceType.CompareTo(b.CapturePieceType));
+        
         if (totalDepth > 0) {
             foreach (var move in legalMoves) {
                 byte nextQuietDepth;
@@ -276,7 +280,7 @@ public class Bot_1337 : IChessBot {
                     nextQuietDepth = (byte) Math.Min(quietDepth - 1, totalDepth - 1);
                 }
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, false, Bot_1337.monotonicKey(board));
+                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board));
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
@@ -291,11 +295,6 @@ public class Bot_1337 : IChessBot {
         }
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
             score = EvaluatePosition(monotonicKey, board, legalMoves);
-        }
-        if (score < alpha) {
-            score = alpha;
-        } else if (score > beta) {
-            score = beta;
         }
         // Cache store
         cacheStore:
@@ -327,6 +326,11 @@ public class Bot_1337 : IChessBot {
             }
         }
         setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
+        if (score < alpha) {
+            score = alpha;
+        } else if (score > beta) {
+            score = beta;
+        }
         return score;
     }
 
@@ -351,6 +355,7 @@ public class Bot_1337 : IChessBot {
         // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
         evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (!isInCheck) {
+            // Use cache to check if this is a known game-over state
             board.MakeMove(Move.NullMove);
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
             if (entry is not { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
@@ -426,13 +431,14 @@ public class Bot_1337 : IChessBot {
     }
     
     private static long evaluateDraw(long materialEval) {
+        const long ALMOST_INFINITE = 900_000_000_000L;
         if (materialEval >= BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
-            return -900_000_000_000L;
+            return -ALMOST_INFINITE;
         }
         if (materialEval <= -BARE_KING_EVAL) {
             // A draw is almost as good as a win for a bare king since it's the best he can do
-            return 900_000_000_000L;
+            return ALMOST_INFINITE;
         }
 
         if (materialEval < 0) {
