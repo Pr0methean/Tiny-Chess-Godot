@@ -19,7 +19,7 @@ public class Bot_1337 : IChessBot {
     private const long MATERIAL_MULTIPLIER = 1_000_000;
     private const long VALUE_PER_AVAILABLE_MOVE = 1_000_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
-    private const long CHECK_PENALTY = 1_000_000_000;
+    private const long CHECK_PENALTY = 50_000_000;
 
     private const long FIFTY_MOVE_COUNTER_PENALTY = 100;
     private const long DRAW_VALUE_WHEN_BEHIND = 100 * 100 * 100 * FIFTY_MOVE_COUNTER_PENALTY;
