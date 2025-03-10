@@ -231,6 +231,7 @@ public class Bot_1337 : IChessBot {
         uint monotonicKey, bool previousMoveWasUnquiet) {
         long score;
         bool storeEndgame = false;
+        bool isInCheck = board.IsInCheck();
         if (board.IsFiftyMoveDraw()) {
             // Zobrist key doesn't consider repetition or 50-move rule, so they may invalidate the cache
             score = evaluateDraw(EvaluateMaterial(board));
@@ -239,7 +240,7 @@ public class Bot_1337 : IChessBot {
         }
         if (board.IsRepeatedPosition()) {
             long baseScore = EvaluateMaterial(board);
-            if (board.IsInCheck()) {
+            if (isInCheck) {
                 baseScore += (CHECK_PENALTY / MATERIAL_MULTIPLIER) * (board.IsWhiteToMove ? -1 : 1);
             }
             score = evaluateDraw(baseScore);
@@ -249,7 +250,7 @@ public class Bot_1337 : IChessBot {
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry) {
             // For positions after unquiet moves, use cached bounds more conservatively
-            if (previousMoveWasUnquiet || board.IsInCheck()) {
+            if (previousMoveWasUnquiet || isInCheck) {
                 // Only use definitive cutoffs from cached bounds
                 if (cacheEntry.LowerBound >= beta) {
                     return beta;  // Safe beta cutoff
@@ -275,7 +276,7 @@ public class Bot_1337 : IChessBot {
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
-            if (board.IsInCheck()) {
+            if (isInCheck) {
                 // Player to move is checkmated
                 score = INFINITY * (board.IsWhiteToMove ? -1 : 1);
             } else {
@@ -345,7 +346,7 @@ public class Bot_1337 : IChessBot {
             if (cacheEntryToUpdate is {} existing) {
                 if (existing.TotalDepth < totalDepth || 
                         (existing.TotalDepth == totalDepth && existing.QuietDepth < quietDepth)) {
-                    if (previousMoveWasUnquiet || board.IsInCheck()) {
+                    if (previousMoveWasUnquiet || isInCheck) {
                         return score;
                     }
                     // Return the appropriate bound from the cached entry; shallower search wins
