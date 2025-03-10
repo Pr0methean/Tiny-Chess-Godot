@@ -36,11 +36,14 @@ namespace ChessChallenge.API
         /// <summary>
         /// Returns true if the given square is set to 1 on the bitboard, otherwise false.
         /// </summary>
-        public static bool SquareIsSet(ulong bitboard, Square square)
+        public static bool SquareIsSet(ulong bitboard, int squareIndex)
         {
-            return ((bitboard >> square.Index) & 1) != 0;
+            return ((bitboard >> squareIndex) & 1) != 0;
         }
 
+        public static bool SquareIsSet(ulong bitboard, Square square) {
+            return SquareIsSet(bitboard, square.Index);
+        }
 
         /// <summary>
         /// Returns index of the first bit that is set to 1. The bit will also be cleared to zero.

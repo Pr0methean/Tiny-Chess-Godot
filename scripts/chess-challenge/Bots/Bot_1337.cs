@@ -337,8 +337,8 @@ public class Bot_1337 : IChessBot {
         }
         // Cache store
         cacheStore:
-        long lowerBound = (score >= beta) ? score : -INFINITY;
-        long upperBound = (score <= alpha) ? score : INFINITY;
+        long lowerBound = (score <= alpha) ? -INFINITY : score;
+        long upperBound = (score >= beta) ? INFINITY : score;
         if (result != GameResult.InProgress) {
             // If a state is terminal, the path length leading to it doesn't matter
             remainingQuietDepth = (sbyte) -1;
@@ -386,13 +386,7 @@ public class Bot_1337 : IChessBot {
         // Player to move is in check
         if (isInCheck) {
             evaluation -= CHECK_PENALTY * (isWhite ? 1 : -1);
-        }
-        
-        // Swarm heuristic - bonus for pieces near enemy king
-        // Push heuristic - bonus for advancing pieces toward enemy
-        evaluation += CalculateSwarmAndPushBonus(board);
-
-        if (!isInCheck) {
+        } else {
             // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
             evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
 
@@ -406,6 +400,10 @@ public class Bot_1337 : IChessBot {
             }
             board.UndoMove(Move.NullMove);
         }
+        
+        // Swarm heuristic - bonus for pieces near enemy king
+        // Push heuristic - bonus for advancing pieces toward enemy
+        evaluation += CalculateSwarmAndPushBonus(board);
         
         return evaluation;
     }
