@@ -86,12 +86,12 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
-        long fiftyMoveAdjustment = board.FiftyMoveCounter >= 40 ? FIFTY_MOVE_COUNTER_PENALTY *
-                                   board.FiftyMoveCounter * board.FiftyMoveCounter * board.FiftyMoveCounter : 0;
         foreach (var move in legalMoves) {
             board.MakeMove(move);
             long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
-            if (value != 0) {
+            if (value != 0 && board.FiftyMoveCounter >= 40) {
+                long fiftyMoveAdjustment = FIFTY_MOVE_COUNTER_PENALTY * board.FiftyMoveCounter *
+                                           board.FiftyMoveCounter * board.FiftyMoveCounter;
                 long underdogMultiplier = (value > 0) ? -1 : 1;
                 value += underdogMultiplier * fiftyMoveAdjustment;
             }
