@@ -104,6 +104,9 @@ public class Bot_1337 : IChessBot {
         foreach (var move in legalMoves) {
             bool unquiet = isUnquietMove(move);
             board.MakeMove(move);
+            if (!unquiet && board.IsInCheck()) {
+                unquiet = true;
+            }
             long value = AlphaBeta(board, (sbyte) (QUIET_DEPTH - (unquiet ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !iAmWhite, Bot_1337.monotonicKey(board), unquiet);
             board.UndoMove(move);
             if (!iAmWhite) {
@@ -302,6 +305,10 @@ public class Bot_1337 : IChessBot {
             foreach (var move in legalMoves) {
                 sbyte nextQuietDepth;
                 bool unquiet = isUnquietMove(move);
+                board.MakeMove(move);
+                if (!unquiet && board.IsInCheck()) {
+                    unquiet = true;
+                }
                 if (unquiet) {
                     nextQuietDepth = (sbyte) Math.Min(remainingQuietDepth, remainingTotalDepth - 1);
                     foundNonQuietMove = true;
@@ -312,7 +319,6 @@ public class Bot_1337 : IChessBot {
                     }
                     nextQuietDepth = (sbyte) Math.Min(remainingQuietDepth - 1, remainingTotalDepth - 1);
                 }
-                board.MakeMove(move);
                 long eval = AlphaBeta(board, nextQuietDepth, (sbyte) (remainingTotalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
                 board.UndoMove(move);
                 if (maximizingPlayer) {
