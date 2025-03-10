@@ -372,9 +372,10 @@ public class Bot_1337 : IChessBot {
         // Push heuristic - bonus for advancing pieces toward enemy
         evaluation += CalculateSwarmAndPushBonus(board);
 
-        // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
-        evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (!isInCheck) {
+            // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
+            evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
+
             // Use cache to check if this is a known game-over state
             board.MakeMove(Move.NullMove);
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
