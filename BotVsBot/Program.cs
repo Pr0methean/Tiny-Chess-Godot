@@ -1,5 +1,4 @@
 ﻿using static ChessChallenge.API.PieceType;
-using System.Diagnostics;
 using auto_Bot_1337;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
