@@ -112,7 +112,6 @@ public class Bot_1337 : IChessBot {
         Debug.WriteLine("New monotonic key is {}", newCurrentMonotonicKey);
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         bool deletedSomething = false;
-        var keys = alphaBetaCache.Keys.GetEnumerator();
         currentMonotonicKey = newCurrentMonotonicKey;
         while (true) {
             var lastKey = alphaBetaCache.Keys.LastOrDefault();
@@ -208,15 +207,24 @@ public class Bot_1337 : IChessBot {
 
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
-        // Cache lookup
         long score;
         bool storeEndgame = false;
-        if (board.IsRepeatedPosition() || board.IsFiftyMoveDraw()) {
+        if (board.IsFiftyMoveDraw()) {
             // Zobrist key doesn't consider repetition or 50-move rule, so they may invalidate the cache
             score = evaluateDraw(EvaluateMaterial(board));
             storeEndgame = true;
             goto cacheStore;
         }
+        if (board.IsRepeatedPosition()) {
+            long baseScore = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
+            if (board.IsInCheck()) {
+                baseScore += CHECK_PENALTY * (board.IsWhiteToMove ? -1 : 1);
+            }
+            score = evaluateDraw(baseScore);
+            storeEndgame = true;
+            goto cacheStore;
+        }
+        // Cache lookup
         var entry = getAlphaBetaCacheEntry(board);
         if (entry is {} cacheEntry) {
             if (cacheEntry.TotalDepth >= totalDepth || cacheEntry.QuietDepth >= quietDepth) {
@@ -245,18 +253,6 @@ public class Bot_1337 : IChessBot {
             storeEndgame = true;
             goto cacheStore;
         }
-        
-        // Check this after GetLegalMoves, so that IsInCheck hits cache
-        if (board.IsRepeatedPosition()) {
-            long baseScore = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
-            if (board.IsInCheck()) {
-                baseScore += CHECK_PENALTY * (board.IsWhiteToMove ? -1 : 1);
-            }
-            score = evaluateDraw(baseScore);
-            storeEndgame = true;
-            goto cacheStore;
-        }
-
         bool foundNonQuietMove = false;
         score = maximizingPlayer ? -INFINITY : INFINITY;
         if (totalDepth > 0) {
@@ -289,7 +285,6 @@ public class Bot_1337 : IChessBot {
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
             score = EvaluatePosition(board, legalMoves);
         }
-
         if (score < alpha) {
             score = alpha;
         } else if (score > beta) {
