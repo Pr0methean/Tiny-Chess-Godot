@@ -66,6 +66,7 @@ public class Bot_1337 : IChessBot {
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
     private static void sortLegalMovesPromisingFirst(ref Span<Move> moves) {
+        random.Shuffle(moves);
         moves.Sort((a, b) => {
             int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
             return promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);  
