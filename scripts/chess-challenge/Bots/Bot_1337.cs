@@ -305,6 +305,10 @@ public class Bot_1337 : IChessBot {
             quietDepth = byte.MaxValue;
             totalDepth = byte.MaxValue;
         } else {
+            if (lowerBound == -INFINITY && upperBound == INFINITY) {
+                // No information to store
+                return score;
+            }
             var cacheEntryToUpdate = getAlphaBetaCacheEntry(monotonicKey, board);
             if (cacheEntryToUpdate is {} existing) {
                 quietDepth = Math.Min(existing.QuietDepth, quietDepth);
