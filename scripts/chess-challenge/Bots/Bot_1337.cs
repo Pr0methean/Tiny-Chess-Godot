@@ -98,8 +98,9 @@ public class Bot_1337 : IChessBot {
         board.GetLegalMovesNonAlloc(ref legalMoves);
         sortLegalMovesPromisingFirst(ref legalMoves);
         foreach (var move in legalMoves) {
+            bool unquiet = isUnquietMove(move);
             board.MakeMove(move);
-            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board));
+            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (unquiet ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board), unquiet);
             board.UndoMove(move);
             if (value >= INFINITY) {
                 return move;
@@ -226,7 +227,8 @@ public class Bot_1337 : IChessBot {
     }
 
 
-    private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer, uint monotonicKey) {
+    private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer,
+        uint monotonicKey, bool previousMoveWasUnquiet) {
         long score;
         bool storeEndgame = false;
         if (board.IsFiftyMoveDraw()) {
@@ -280,7 +282,8 @@ public class Bot_1337 : IChessBot {
         if (totalDepth > 0) {
             foreach (var move in legalMoves) {
                 byte nextQuietDepth;
-                if (isUnquietMove(move)) {
+                bool unquiet = isUnquietMove(move);
+                if (unquiet) {
                     nextQuietDepth = (byte) Math.Min(quietDepth, totalDepth - 1);
                     foundNonQuietMove = true;
                 }
@@ -291,7 +294,7 @@ public class Bot_1337 : IChessBot {
                     nextQuietDepth = (byte) Math.Min(quietDepth - 1, totalDepth - 1);
                 }
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board));
+                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
@@ -330,7 +333,7 @@ public class Bot_1337 : IChessBot {
             if (cacheEntryToUpdate is {} existing) {
                 if (existing.TotalDepth < totalDepth || 
                         (existing.TotalDepth == totalDepth && existing.QuietDepth < quietDepth)) {
-                    if (isUnquietMove(board.GameMoveHistory.Last()) || board.IsInCheck()) {
+                    if (previousMoveWasUnquiet || board.IsInCheck()) {
                         return score;
                     }
                     // Return the appropriate bound from the cached entry; shallower search wins
