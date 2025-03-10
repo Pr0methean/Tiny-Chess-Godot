@@ -44,18 +44,18 @@ public class Bot_1337 : IChessBot {
     public readonly record struct CacheEntry {
         public long LowerBound { get; }
         public long UpperBound { get; }
-        public byte QuietDepth { get; }
-        public byte TotalDepth { get; }
+        public byte RemainingQuietDepth { get; }
+        public byte RemainingTotalDepth { get; }
 
-        public CacheEntry(long lowerBound, long upperBound, byte quietDepth, byte totalDepth) {
+        public CacheEntry(long lowerBound, long upperBound, byte remainingQuietDepth, byte remainingTotalDepth) {
             // Add validation
-            if (totalDepth < quietDepth)
+            if (remainingTotalDepth < remainingQuietDepth)
                 throw new ArgumentException("Total depth must be >= quiet depth");
             if (upperBound < lowerBound)
                 throw new ArgumentException("Upper bound must be >= lower bound");
 
-            QuietDepth = quietDepth;
-            TotalDepth = totalDepth;
+            RemainingQuietDepth = remainingQuietDepth;
+            RemainingTotalDepth = remainingTotalDepth;
             LowerBound = lowerBound;
             UpperBound = upperBound;
         }
@@ -227,7 +227,7 @@ public class Bot_1337 : IChessBot {
     }
 
 
-    private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer,
+    private long AlphaBeta(Board board, byte remainingQuietDepth, byte remainingTotalDepth, long alpha, long beta, bool maximizingPlayer,
         uint monotonicKey, bool previousMoveWasUnquiet) {
         long score;
         bool storeEndgame = false;
@@ -248,7 +248,8 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
-        if (entry is {} cacheEntry) {
+        if (entry is {} cacheEntry && (cacheEntry.RemainingTotalDepth < remainingTotalDepth 
+                                       || (cacheEntry.RemainingTotalDepth == remainingTotalDepth && cacheEntry.RemainingQuietDepth < remainingQuietDepth))) {
             // For positions after unquiet moves, use cached bounds more conservatively
             if (previousMoveWasUnquiet || isInCheck) {
                 // Only use definitive cutoffs from cached bounds
@@ -259,7 +260,6 @@ public class Bot_1337 : IChessBot {
                     return alpha; // Safe alpha cutoff
                 }
                 // Don't update intermediate bounds after unquiet moves
-                return alpha;
             }
             
             // For quiet positions, use full cached information
@@ -292,22 +292,22 @@ public class Bot_1337 : IChessBot {
         // Sort descending by promoted piece type, then by captured piece type
         sortLegalMovesPromisingFirst(ref legalMoves);
         
-        if (totalDepth > 0) {
+        if (remainingTotalDepth > 0) {
             foreach (var move in legalMoves) {
                 byte nextQuietDepth;
                 bool unquiet = isUnquietMove(move);
                 if (unquiet) {
-                    nextQuietDepth = (byte) Math.Min(quietDepth, totalDepth - 1);
+                    nextQuietDepth = (byte) Math.Min(remainingQuietDepth, remainingTotalDepth - 1);
                     foundNonQuietMove = true;
                 }
                 else {
-                    if (quietDepth == 0) {
+                    if (remainingQuietDepth == 0) {
                         continue;
                     }
-                    nextQuietDepth = (byte) Math.Min(quietDepth - 1, totalDepth - 1);
+                    nextQuietDepth = (byte) Math.Min(remainingQuietDepth - 1, remainingTotalDepth - 1);
                 }
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
+                long eval = AlphaBeta(board, nextQuietDepth, (byte) (remainingTotalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
@@ -320,7 +320,7 @@ public class Bot_1337 : IChessBot {
                     break;
             }
         }
-        if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
+        if (alpha < beta && (remainingTotalDepth == 0 || (remainingQuietDepth == 0 && !foundNonQuietMove))) {
             // We've reached our maximum depth
             if (board.IsInsufficientMaterial()) {
                 score = evaluateDraw(EvaluateMaterial(board));
@@ -335,8 +335,8 @@ public class Bot_1337 : IChessBot {
         long upperBound = (score <= alpha) ? score : INFINITY;
         if (storeEndgame) {
             // If a state is terminal, the path length leading to it doesn't matter
-            quietDepth = byte.MaxValue;
-            totalDepth = byte.MaxValue;
+            remainingQuietDepth = byte.MaxValue;
+            remainingTotalDepth = byte.MaxValue;
         } else {
             if (lowerBound == -INFINITY && upperBound == INFINITY) {
                 // No information to store
@@ -344,12 +344,12 @@ public class Bot_1337 : IChessBot {
             }
             var cacheEntryToUpdate = getAlphaBetaCacheEntry(monotonicKey, board);
             if (cacheEntryToUpdate is {} existing) {
-                if (existing.TotalDepth < totalDepth || 
-                        (existing.TotalDepth == totalDepth && existing.QuietDepth < quietDepth)) {
+                if (existing.RemainingTotalDepth < remainingTotalDepth || 
+                        (existing.RemainingTotalDepth == remainingTotalDepth && existing.RemainingQuietDepth < remainingQuietDepth)) {
                     if (previousMoveWasUnquiet || isInCheck) {
                         return score;
                     }
-                    // Return the appropriate bound from the cached entry; shallower search wins
+                    // Return the appropriate bound from the cached entry; deeper search (less depth remaining) wins
                     return maximizingPlayer ? existing.LowerBound : existing.UpperBound;
                 }
             }
@@ -359,7 +359,7 @@ public class Bot_1337 : IChessBot {
             }
             // Fall through to cache update only for new entries or when our search is shallower
         }
-        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
+        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, remainingQuietDepth, remainingTotalDepth));
         if (score < alpha) {
             score = alpha;
         } else if (score > beta) {
@@ -393,7 +393,7 @@ public class Bot_1337 : IChessBot {
             board.MakeMove(Move.NullMove);
             // Use cache to check if null move led to a known game-over state
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
-            if (entry is not { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
+            if (entry is not { RemainingQuietDepth: byte.MaxValue, RemainingTotalDepth: byte.MaxValue }) {
                 Span<Move> opponentLegalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
                 evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
