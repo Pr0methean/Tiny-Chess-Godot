@@ -242,11 +242,6 @@ public class Bot_1337 : IChessBot {
         if (alpha >= beta) {
             return maximizingPlayer ? alpha : beta;
         }
-        if (board.IsInsufficientMaterial()) {
-            score = evaluateDraw(EvaluateMaterial(board));
-            storeEndgame = true;
-            goto cacheStore;
-        }
         Span<Move> legalMoves = stackalloc Move[128];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
@@ -294,6 +289,11 @@ public class Bot_1337 : IChessBot {
             }
         }
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
+            if (board.IsInsufficientMaterial()) {
+                score = evaluateDraw(EvaluateMaterial(board));
+                storeEndgame = true;
+                goto cacheStore;
+            }
             score = EvaluatePosition(monotonicKey, board, legalMoves);
         }
         // Cache store
