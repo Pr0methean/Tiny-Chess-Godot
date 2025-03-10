@@ -88,7 +88,7 @@ public class Bot_1337 : IChessBot {
         board.GetLegalMovesNonAlloc(ref legalMoves);
         foreach (var move in legalMoves) {
             board.MakeMove(move);
-            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove);
+            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board));
             if (value != 0 && board.FiftyMoveCounter >= 40) {
                 long fiftyMoveAdjustment = FIFTY_MOVE_COUNTER_PENALTY * board.FiftyMoveCounter *
                                            board.FiftyMoveCounter * board.FiftyMoveCounter;
@@ -203,10 +203,9 @@ public class Bot_1337 : IChessBot {
     }
 
 
-    private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
+    private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer, uint monotonicKey) {
         long score;
         bool storeEndgame = false;
-        uint monotonicKey = Bot_1337.monotonicKey(board);
         if (board.IsFiftyMoveDraw()) {
             // Zobrist key doesn't consider repetition or 50-move rule, so they may invalidate the cache
             score = evaluateDraw(EvaluateMaterial(board));
@@ -267,7 +266,7 @@ public class Bot_1337 : IChessBot {
                     nextQuietDepth = (byte) (quietDepth - 1);
                 }
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, false);
+                long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, false, Bot_1337.monotonicKey(board));
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
