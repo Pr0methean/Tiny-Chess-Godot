@@ -91,6 +91,10 @@ public class Bot_1337 : IChessBot {
         foreach (var move in legalMoves) {
             board.MakeMove(move);
             long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (isUnquietMove(move) ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board));
+            board.UndoMove(move);
+            if (value >= INFINITY) {
+                return move;
+            }
             if (value != 0 && board.FiftyMoveCounter >= 40) {
                 long fiftyMoveAdjustment = FIFTY_MOVE_COUNTER_PENALTY * board.FiftyMoveCounter *
                                            board.FiftyMoveCounter * board.FiftyMoveCounter;
@@ -101,7 +105,6 @@ public class Bot_1337 : IChessBot {
                 bestValue = value;
                 bestMove = move;
             }
-            board.UndoMove(move);
         }
 
         return bestMove;
