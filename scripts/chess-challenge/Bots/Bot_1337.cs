@@ -327,6 +327,9 @@ public class Bot_1337 : IChessBot {
                         return score;
                     }
                 }
+            } else if (lowerBound > upperBound) {
+                lowerBound = score;
+                upperBound = score;
             }
         }
         setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
