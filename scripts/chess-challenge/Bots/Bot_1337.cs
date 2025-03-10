@@ -2,6 +2,7 @@ using System.Diagnostics;
 using static ChessChallenge.API.PieceType;
 using static System.Numerics.BitOperations;
 using System.Runtime.InteropServices;
+using ChessChallenge.Chess;
 
 namespace auto_Bot_1337;
 
@@ -44,10 +45,11 @@ public class Bot_1337 : IChessBot {
     public readonly record struct CacheEntry {
         public long LowerBound { get; }
         public long UpperBound { get; }
-        public byte RemainingQuietDepth { get; }
-        public byte RemainingTotalDepth { get; }
+        public GameResult Result { get; }
+        public sbyte RemainingQuietDepth { get; }
+        public sbyte RemainingTotalDepth { get; }
 
-        public CacheEntry(long lowerBound, long upperBound, byte remainingQuietDepth, byte remainingTotalDepth) {
+        public CacheEntry(long lowerBound, long upperBound, sbyte remainingQuietDepth, sbyte remainingTotalDepth, GameResult result) {
             // Add validation
             if (remainingTotalDepth < remainingQuietDepth)
                 throw new ArgumentException("Total depth must be >= quiet depth");
@@ -56,6 +58,7 @@ public class Bot_1337 : IChessBot {
 
             RemainingQuietDepth = remainingQuietDepth;
             RemainingTotalDepth = remainingTotalDepth;
+            this.Result = result;
             LowerBound = lowerBound;
             UpperBound = upperBound;
         }
@@ -100,7 +103,7 @@ public class Bot_1337 : IChessBot {
         foreach (var move in legalMoves) {
             bool unquiet = isUnquietMove(move);
             board.MakeMove(move);
-            long value = -AlphaBeta(board, (byte) (QUIET_DEPTH - (unquiet ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board), unquiet);
+            long value = -AlphaBeta(board, (sbyte) (QUIET_DEPTH - (unquiet ? 1 : 0)), MAX_TOTAL_DEPTH - 1, -INFINITY, INFINITY, !board.IsWhiteToMove, Bot_1337.monotonicKey(board), unquiet);
             board.UndoMove(move);
             if (value >= INFINITY) {
                 return move;
@@ -227,15 +230,15 @@ public class Bot_1337 : IChessBot {
     }
 
 
-    private long AlphaBeta(Board board, byte remainingQuietDepth, byte remainingTotalDepth, long alpha, long beta, bool maximizingPlayer,
+    private long AlphaBeta(Board board, sbyte remainingQuietDepth, sbyte remainingTotalDepth, long alpha, long beta, bool maximizingPlayer,
         uint monotonicKey, bool previousMoveWasUnquiet) {
         long score;
-        bool storeEndgame = false;
         bool isInCheck = board.IsInCheck();
+        GameResult result = GameResult.InProgress;
         if (board.IsFiftyMoveDraw()) {
             // Zobrist key doesn't consider repetition or 50-move rule, so they may invalidate the cache
             score = evaluateDraw(EvaluateMaterial(board));
-            storeEndgame = true;
+            result = GameResult.FiftyMoveRule;
             goto cacheStore;
         }
         if (board.IsRepeatedPosition()) {
@@ -244,7 +247,7 @@ public class Bot_1337 : IChessBot {
                 baseScore += (CHECK_PENALTY / MATERIAL_MULTIPLIER) * (board.IsWhiteToMove ? -1 : 1);
             }
             score = evaluateDraw(baseScore);
-            storeEndgame = true;
+            result = GameResult.Repetition;
             goto cacheStore;
         }
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
@@ -277,13 +280,12 @@ public class Bot_1337 : IChessBot {
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
             if (isInCheck) {
-                // Player to move is checkmated
                 score = INFINITY * (board.IsWhiteToMove ? -1 : 1);
+                result = board.IsWhiteToMove ? GameResult.WhiteIsMated : GameResult.BlackIsMated;
             } else {
-                // Stalemate
                 score = evaluateDraw(EvaluateMaterial(board));
+                result = GameResult.Stalemate;
             }
-            storeEndgame = true;
             goto cacheStore;
         }
         bool foundNonQuietMove = false;
@@ -294,20 +296,20 @@ public class Bot_1337 : IChessBot {
         
         if (remainingTotalDepth > 0) {
             foreach (var move in legalMoves) {
-                byte nextQuietDepth;
+                sbyte nextQuietDepth;
                 bool unquiet = isUnquietMove(move);
                 if (unquiet) {
-                    nextQuietDepth = (byte) Math.Min(remainingQuietDepth, remainingTotalDepth - 1);
+                    nextQuietDepth = (sbyte) Math.Min(remainingQuietDepth, remainingTotalDepth - 1);
                     foundNonQuietMove = true;
                 }
                 else {
                     if (remainingQuietDepth == 0) {
                         continue;
                     }
-                    nextQuietDepth = (byte) Math.Min(remainingQuietDepth - 1, remainingTotalDepth - 1);
+                    nextQuietDepth = (sbyte) Math.Min(remainingQuietDepth - 1, remainingTotalDepth - 1);
                 }
                 board.MakeMove(move);
-                long eval = AlphaBeta(board, nextQuietDepth, (byte) (remainingTotalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
+                long eval = AlphaBeta(board, nextQuietDepth, (sbyte) (remainingTotalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
                 board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
@@ -324,7 +326,7 @@ public class Bot_1337 : IChessBot {
             // We've reached our maximum depth
             if (board.IsInsufficientMaterial()) {
                 score = evaluateDraw(EvaluateMaterial(board));
-                storeEndgame = true;
+                result = GameResult.InsufficientMaterial;
                 goto cacheStore;
             }
             score = EvaluatePosition(monotonicKey, board, legalMoves);
@@ -333,10 +335,10 @@ public class Bot_1337 : IChessBot {
         cacheStore:
         long lowerBound = (score >= beta) ? score : -INFINITY;
         long upperBound = (score <= alpha) ? score : INFINITY;
-        if (storeEndgame) {
+        if (result != GameResult.InProgress) {
             // If a state is terminal, the path length leading to it doesn't matter
-            remainingQuietDepth = byte.MaxValue;
-            remainingTotalDepth = byte.MaxValue;
+            remainingQuietDepth = (sbyte) -1;
+            remainingTotalDepth = -1;
         } else {
             if (lowerBound == -INFINITY && upperBound == INFINITY) {
                 // No information to store
@@ -359,7 +361,7 @@ public class Bot_1337 : IChessBot {
             }
             // Fall through to cache update only for new entries or when our search is shallower
         }
-        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, remainingQuietDepth, remainingTotalDepth));
+        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, remainingQuietDepth, remainingTotalDepth, result));
         if (score < alpha) {
             score = alpha;
         } else if (score > beta) {
@@ -393,7 +395,7 @@ public class Bot_1337 : IChessBot {
             board.MakeMove(Move.NullMove);
             // Use cache to check if null move led to a known game-over state
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
-            if (entry is not { RemainingQuietDepth: byte.MaxValue, RemainingTotalDepth: byte.MaxValue }) {
+            if (entry is not {} cacheEntry || cacheEntry.Result == GameResult.InProgress) {
                 Span<Move> opponentLegalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
                 evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
