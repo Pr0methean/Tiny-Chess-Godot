@@ -263,7 +263,7 @@ public class Bot_1337 : IChessBot {
                     if (quietDepth == 0) {
                         continue;
                     }
-                    nextQuietDepth = (byte) (quietDepth - 1);
+                    nextQuietDepth = (byte) (byte) Math.Min(quietDepth - 1, totalDepth - 1);
                 }
                 board.MakeMove(move);
                 long eval = AlphaBeta(board, nextQuietDepth, (byte) (totalDepth - 1), alpha, beta, false, Bot_1337.monotonicKey(board));
