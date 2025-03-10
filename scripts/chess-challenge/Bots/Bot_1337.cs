@@ -10,7 +10,7 @@ using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
     private const uint MAX_MONOTONIC_KEY = 2 * 16807U * 65535U 
-                                           + 31 * (((((((((9 * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 10) * 5 + 10) * 5 + 10) * 5 + 10)
+                                           + 31 * (((((((((9 * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 9) * 5 + 10) * 5 + 10) * 5 + 10) * 11 + 10)
                                            + 127 * (1 << 19 - 1) * 15U;
     private const byte QUIET_DEPTH = 2;
     private const byte MAX_TOTAL_DEPTH = 6;
@@ -170,7 +170,7 @@ public class Bot_1337 : IChessBot {
                                     + whitePawnsAndQueens) * 5
                                    + blackPawnsAndKnights) * 5
                                   + blackPawnsAndRooks) * 5
-                                 + whitePawnsAndKnights) * 5
+                                 + whitePawnsAndKnights) * 11
                                 + whitePawnsAndRooks;
         uint castlingKey = (uint) ((board.HasQueensideCastleRight(true) ? 1 : 0)
                                                                    | (board.HasKingsideCastleRight(false) ? 2 : 0)
