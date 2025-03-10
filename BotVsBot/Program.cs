@@ -23,12 +23,18 @@ do {
     {
         Console.Write(plyCount / 2 + 1 + ". ");
     }
-    Console.Write(MoveUtility.GetMoveNameSAN(cccMove, board));
+
+    string moveNameSan = MoveUtility.GetMoveNameSAN(cccMove, board);
+    Console.Write(moveNameSan);
     if (plyCount % 2 != 0)
     {
         Console.WriteLine();
     } else {
         Console.Write("  ");
+    }
+    if (moveNameSan.EndsWith('#')) {
+        result = whiteToMove ? GameResult.BlackIsMated : GameResult.WhiteIsMated;
+        break;
     }
     plyCount++;
     apiBoard.MakeMove(move);
