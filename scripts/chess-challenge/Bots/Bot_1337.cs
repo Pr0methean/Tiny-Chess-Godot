@@ -125,7 +125,7 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static uint monotonicKey(Board board) {
+    public static uint monotonicKey(Board board) {
         ulong whitePawnBitboard = board.GetPieceBitboard(Pawn, true);
         ulong blackPawnBitboard = board.GetPieceBitboard(Pawn, false);
         ulong rank2PawnsKey = ((whitePawnBitboard & 0x0000_0000_0000_ff00) >> 8) 
@@ -179,35 +179,34 @@ public class Bot_1337 : IChessBot {
         return 2 * pawnsKey + 3 * nonKingPiecesKey + 127 * (1<<19 - 1) * castlingKey;
     }
 
-    public static CacheEntry? getAlphaBetaCacheEntry(Board board) {
-        uint key = monotonicKey(board);
-        ulong zobristKey = board.ZobristKey;
-        if (key > currentMonotonicKey) {
+    public static CacheEntry? getAlphaBetaCacheEntry(uint monotonicKey, Board board) {
+        if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        if (!alphaBetaCache.TryGetValue(key, out var cacheForMonotonicKey)) {
+        if (!alphaBetaCache.TryGetValue(monotonicKey, out var cacheForMonotonicKey)) {
             return null;
         }
+        ulong zobristKey = board.ZobristKey;
         if (cacheForMonotonicKey.TryGetValue(zobristKey, out var entry)) {
             return entry;
         }
         return null;
     }
     
-    private static void setAlphaBetaCacheEntry(Board board, CacheEntry value) {
-        uint key = monotonicKey(board);
+    private static void setAlphaBetaCacheEntry(uint monotonicKey, Board board, CacheEntry value) {
         ulong zobristKey = board.ZobristKey;
-        if (key > currentMonotonicKey) {
+        if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        alphaBetaCache.TryAdd(key, new Dictionary<ulong, CacheEntry>());
-        alphaBetaCache[key][zobristKey] = value;
+        alphaBetaCache.TryAdd(monotonicKey, new Dictionary<ulong, CacheEntry>());
+        alphaBetaCache[monotonicKey][zobristKey] = value;
     }
 
 
     private long AlphaBeta(Board board, byte quietDepth, byte totalDepth, long alpha, long beta, bool maximizingPlayer) {
         long score;
         bool storeEndgame = false;
+        uint monotonicKey = Bot_1337.monotonicKey(board);
         if (board.IsFiftyMoveDraw()) {
             // Zobrist key doesn't consider repetition or 50-move rule, so they may invalidate the cache
             score = evaluateDraw(EvaluateMaterial(board));
@@ -224,7 +223,7 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
         // Cache lookup
-        var entry = getAlphaBetaCacheEntry(board);
+        var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry) {
             if (cacheEntry.TotalDepth >= totalDepth || cacheEntry.QuietDepth >= quietDepth) {
                 alpha = Math.Max(alpha, cacheEntry.LowerBound);
@@ -282,7 +281,7 @@ public class Bot_1337 : IChessBot {
             }
         }
         if (alpha < beta && (totalDepth == 0 || (quietDepth == 0 && !foundNonQuietMove))) {
-            score = EvaluatePosition(board, legalMoves);
+            score = EvaluatePosition(monotonicKey, board, legalMoves);
         }
         if (score < alpha) {
             score = alpha;
@@ -298,7 +297,7 @@ public class Bot_1337 : IChessBot {
             quietDepth = byte.MaxValue;
             totalDepth = byte.MaxValue;
         } else {
-            var cacheEntryToUpdate = getAlphaBetaCacheEntry(board);
+            var cacheEntryToUpdate = getAlphaBetaCacheEntry(monotonicKey, board);
             if (cacheEntryToUpdate is {} existing) {
                 quietDepth = Math.Min(existing.QuietDepth, quietDepth);
                 totalDepth = Math.Min(existing.TotalDepth, totalDepth);
@@ -318,7 +317,7 @@ public class Bot_1337 : IChessBot {
                 }
             }
         }
-        setAlphaBetaCacheEntry(board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
+        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
         return score;
     }
 
@@ -327,7 +326,7 @@ public class Bot_1337 : IChessBot {
     }
 
     // Positive favors white
-    public long EvaluatePosition(Board board, Span<Move> legalMoves) { 
+    public long EvaluatePosition(uint monotonicKey, Board board, Span<Move> legalMoves) { 
         var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
         bool isInCheck = board.IsInCheck();
@@ -344,7 +343,7 @@ public class Bot_1337 : IChessBot {
         evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
         if (!isInCheck) {
             board.MakeMove(Move.NullMove);
-            var entry = getAlphaBetaCacheEntry(board);
+            var entry = getAlphaBetaCacheEntry(monotonicKey, board);
             if (entry is not { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
                 Span<Move> opponentLegalMoves = stackalloc Move[128];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);

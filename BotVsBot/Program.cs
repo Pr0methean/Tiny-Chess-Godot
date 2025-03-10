@@ -39,7 +39,7 @@ do {
             Bot_1337.trimCache(apiBoard);
         }
 
-        var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(apiBoard);
+        var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(Bot_1337.monotonicKey(apiBoard), apiBoard);
         if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
             // Handles false positives due to Zobrist collision
             result = Arbiter.GetGameState(board);
