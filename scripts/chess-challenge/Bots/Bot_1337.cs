@@ -259,7 +259,7 @@ public class Bot_1337 : IChessBot {
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
             if (board.IsInCheck()) {
-                // Checkmate
+                // Player to move is checkmated
                 score = INFINITY * (board.IsWhiteToMove ? -1 : 1);
             } else {
                 // Stalemate
@@ -325,26 +325,17 @@ public class Bot_1337 : IChessBot {
             }
             var cacheEntryToUpdate = getAlphaBetaCacheEntry(monotonicKey, board);
             if (cacheEntryToUpdate is {} existing) {
-                quietDepth = Math.Min(existing.QuietDepth, quietDepth);
-                totalDepth = Math.Min(existing.TotalDepth, totalDepth);
-                lowerBound = Math.Max(lowerBound, existing.LowerBound);
-                upperBound = Math.Min(upperBound, existing.UpperBound);
-                if (lowerBound > upperBound) {
-                    if (totalDepth > existing.TotalDepth ||
-                        (totalDepth == existing.TotalDepth && quietDepth > existing.QuietDepth)) {
-                        // Deeper search is correct
-                        lowerBound = score;
-                        upperBound = score;
-                    }
-                    else {
-                        // Don't write to cache if a deeper search contradicts us
-                        return score;
-                    }
+                if (existing.TotalDepth < totalDepth || 
+                    (existing.TotalDepth == totalDepth && existing.QuietDepth < quietDepth)) {
+                    // Trust the shallower search completely and leave its cache entry as-is
+                    return score;
                 }
-            } else if (lowerBound > upperBound) {
+            }
+            if (lowerBound > upperBound) {
                 lowerBound = score;
                 upperBound = score;
             }
+            // Fall through to cache update only for new entries or when our search is shallower
         }
         setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, quietDepth, totalDepth));
         if (score < alpha) {
@@ -364,7 +355,7 @@ public class Bot_1337 : IChessBot {
         var evaluation = EvaluateMaterial(board) * MATERIAL_MULTIPLIER;
         bool isWhite = board.IsWhiteToMove;
         bool isInCheck = board.IsInCheck();
-        // Check penalty
+        // Player to move is in check
         if (isInCheck) {
             evaluation -= CHECK_PENALTY * (isWhite ? 1 : -1);
         }
@@ -377,8 +368,8 @@ public class Bot_1337 : IChessBot {
             // MinOpptMove heuristic - prefer to leave opponent with fewer possible responses\
             evaluation += VALUE_PER_AVAILABLE_MOVE * legalMoves.Length * (isWhite ? 1 : -1);
 
-            // Use cache to check if this is a known game-over state
             board.MakeMove(Move.NullMove);
+            // Use cache to check if null move led to a known game-over state
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
             if (entry is not { QuietDepth: byte.MaxValue, TotalDepth: byte.MaxValue }) {
                 Span<Move> opponentLegalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
