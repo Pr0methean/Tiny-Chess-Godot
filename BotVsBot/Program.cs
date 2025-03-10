@@ -34,15 +34,9 @@ do {
     apiBoard.MakeMove(move);
     board.MakeMove(cccMove, false);
     if (Bot_1337.firstNonBookMove) {
-        var cacheEntry = Bot_1337.getAlphaBetaCacheEntry(Bot_1337.monotonicKey(apiBoard), apiBoard);
-        if (cacheEntry is { QuietDepth: Byte.MaxValue, TotalDepth: Byte.MaxValue }) {
-            // Handles false positives due to Zobrist collision
-            result = Arbiter.GetGameState(board);
-        }
-        else if (Arbiter.isThreefoldRepetition(board)) {
-            result = GameResult.Repetition;
-        } else if (move.IsCapture || move.MovePieceType == Pawn 
-                             || (move.MovePieceType is King or Rook && move.StartSquare.Rank == (whiteToMove ? 0 : 7))) {
+        result = Arbiter.GetGameState(board);
+        if (result == GameResult.InProgress && (move.IsCapture || move.MovePieceType == Pawn 
+                             || (move.MovePieceType is King or Rook && move.StartSquare.Rank == (whiteToMove ? 0 : 7)))) {
             Bot_1337.trimCache(apiBoard);
         }
     }
