@@ -244,16 +244,19 @@ public class Bot_1337 : IChessBot {
             storeEndgame = true;
             goto cacheStore;
         }
-        // Cache lookup
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry) {
-            if (cacheEntry.TotalDepth >= totalDepth || cacheEntry.QuietDepth >= quietDepth) {
-                alpha = Math.Max(alpha, cacheEntry.LowerBound);
-                beta = Math.Min(beta, cacheEntry.UpperBound);
+            // If lower bound is >= beta, this is a beta cutoff
+            if (cacheEntry.LowerBound >= beta) {
+                return cacheEntry.LowerBound;
             }
-        }
-        if (alpha >= beta) {
-            return maximizingPlayer ? alpha : beta;
+            // If upper bound is <= alpha, this position can't improve alpha
+            if (cacheEntry.UpperBound <= alpha) {
+                return cacheEntry.UpperBound;
+            }
+            // Update bounds, but don't return yet
+            alpha = Math.Max(alpha, cacheEntry.LowerBound);
+            beta = Math.Min(beta, cacheEntry.UpperBound);
         }
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
@@ -326,9 +329,12 @@ public class Bot_1337 : IChessBot {
             var cacheEntryToUpdate = getAlphaBetaCacheEntry(monotonicKey, board);
             if (cacheEntryToUpdate is {} existing) {
                 if (existing.TotalDepth < totalDepth || 
-                    (existing.TotalDepth == totalDepth && existing.QuietDepth < quietDepth)) {
-                    // Trust the shallower search completely and leave its cache entry as-is
-                    return score;
+                        (existing.TotalDepth == totalDepth && existing.QuietDepth < quietDepth)) {
+                    if (isUnquietMove(board.GameMoveHistory.Last()) || board.IsInCheck()) {
+                        return score;
+                    }
+                    // Return the appropriate bound from the cached entry; shallower search wins
+                    return maximizingPlayer ? existing.LowerBound : existing.UpperBound;
                 }
             }
             if (lowerBound > upperBound) {
