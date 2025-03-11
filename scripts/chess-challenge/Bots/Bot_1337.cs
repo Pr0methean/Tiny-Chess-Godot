@@ -70,12 +70,34 @@ public class Bot_1337 : IChessBot {
     private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
+    // Sorts pawn promotions first, then moves that push toward the back rank next.
     private static void sortLegalMovesPromisingFirst(Span<Move> moves, bool iAmWhite) {
         moves.Sort((a, b) => {
-            int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
-            int capturedPieceComparison = promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);
-            int movePieceTypeComparison = capturedPieceComparison != 0 ? capturedPieceComparison : a.MovePieceType.CompareTo(b.MovePieceType);
-            return movePieceTypeComparison != 0 ? movePieceTypeComparison : a.TargetSquare.Rank.CompareTo(b.TargetSquare.Rank) * (iAmWhite ? -1 : 1);
+            int aRaw = a.RawValue;
+            int bRaw = b.RawValue;
+
+            // Rank higher pawn promotions first
+            if ((aRaw & 0b0100000000000000) != 0) {
+                if ((bRaw & 0b0100000000000000) != 0) {
+                    // lower flag = promoting to stronger piece
+                    return (aRaw & 0b0011000000000000).CompareTo(bRaw & 0b0011000000000000);
+                }
+                return -1; // promotion a before non-promotion b
+            }
+            if ((bRaw & 0b0100000000000000) != 0) {
+                return 1; // promotion b before non-promotion a
+            }
+            int captureComparison = a.CapturePieceType.CompareTo(b.CapturePieceType);
+            if (captureComparison != 0) {
+                return -captureComparison; // capture of stronger piece first
+            }
+            int moveComparison = a.MovePieceType.CompareTo(b.MovePieceType);
+            if (moveComparison != 0) {
+                return moveComparison; // move weaker piece first
+            }
+            // Push to deeper ranks first
+            return (aRaw & 0b0000111000000000).CompareTo(bRaw & 0b0000111000000000)
+                   * (iAmWhite ? -1 : 1);
         });
     }
 
