@@ -1,5 +1,5 @@
 //#define DEBUG_MONOTONIC_KEY
-#define DEBUG_TRIM
+//#define DEBUG_TRIM
 
 using System.Diagnostics;
 using static ChessChallenge.API.PieceType;
@@ -279,12 +279,11 @@ public class Bot_1337 : IChessBot {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
         if (monotonicKey != currentMonotonicKey) {
-            var newCache = new Dictionary<ulong, CacheEntry>();
-            if (alphaBetaCache.TryAdd(monotonicKey, newCache)) {
-                newCache[zobristKey] = value;
-            } else {
-                alphaBetaCache[monotonicKey][zobristKey] = value;
+            if (!alphaBetaCache.TryGetValue(monotonicKey, out var tableForKey)) {
+                tableForKey = new Dictionary<ulong, CacheEntry>(1);
+                alphaBetaCache[monotonicKey] = tableForKey;
             }
+            tableForKey[zobristKey] = value;
         } else if (currentKeyCache == null) {
             currentKeyCache = new Dictionary<ulong, CacheEntry>();
             currentKeyCache[zobristKey] = value;
