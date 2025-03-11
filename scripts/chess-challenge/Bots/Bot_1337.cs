@@ -363,7 +363,8 @@ public class Bot_1337 : IChessBot {
                         return score;
                     }
                     // Return the appropriate bound from the cached entry; deeper search (less depth remaining) wins
-                    return maximizingPlayer ? existing.LowerBound : existing.UpperBound;
+                    return maximizingPlayer ? Math.Max(alpha, existing.LowerBound)
+                        : Math.Min(beta, existing.UpperBound);
                 }
             }
             if (lowerBound > upperBound) {
@@ -372,17 +373,17 @@ public class Bot_1337 : IChessBot {
             }
             // Fall through to cache update only for new entries or when our search is deeper
         }
-        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, remainingQuietDepth, remainingTotalDepth, result));
         if (score < alpha) {
             score = alpha;
         } else if (score > beta) {
             score = beta;
         }
+        setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, remainingQuietDepth, remainingTotalDepth, result));
         return score;
     }
 
     private static bool isUnquietMove(Move move) {
-        return move.IsCapture || move.IsPromotion || (move.MovePieceType == Pawn && move.TargetSquare.Rank is 1 or 6);
+        return move.IsCapture || move.IsPromotion || move is { MovePieceType: Pawn, TargetSquare.Rank: 1 or 6 };
     }
 
     // Positive favors white
