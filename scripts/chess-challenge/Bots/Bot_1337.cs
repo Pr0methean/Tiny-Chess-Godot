@@ -16,7 +16,7 @@ public class Bot_1337 : IChessBot {
                                            + (uint) (2 << 28)
                                            + (uint) ((9 << 24) + (9 << 21) + (9 << 18) + (10 << 15) + (10 << 12) + (10 << 9) + (10 << 6) + (10 << 3) + 10);
     private const byte QUIET_DEPTH = 3;
-    private const byte MAX_TOTAL_DEPTH = 6;
+    private const byte MAX_TOTAL_DEPTH = 8;
     private const long INFINITY = 1_000_000_000_000_000;
     private const int MAX_NUMBER_LEGAL_MOVES = 218; // R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1
 
@@ -327,13 +327,13 @@ public class Bot_1337 : IChessBot {
                     foundNonQuietMove = true;
                 }
                 else {
+                    if (remainingQuietDepth == 0) {
+                        board.UndoMove(move);
+                        continue;
+                    }
                     nextQuietDepth = (sbyte) Math.Min(remainingQuietDepth - 1, remainingTotalDepth - 1);
                 }
                 long eval = AlphaBeta(board, nextQuietDepth, (sbyte) (remainingTotalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
-                board.UndoMove(move);
-                if (!unquiet && remainingQuietDepth == 0) {
-                    continue;
-                }
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
                     alpha = Math.Max(alpha, score);
