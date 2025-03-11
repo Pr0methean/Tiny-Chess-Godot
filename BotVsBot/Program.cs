@@ -1,4 +1,6 @@
-﻿using static ChessChallenge.API.PieceType;
+﻿//#define DEBUG_MONOTONIC_KEY
+
+using static ChessChallenge.API.PieceType;
 using auto_Bot_1337;
 using ChessChallenge.Chess;
 using Board = ChessChallenge.Chess.Board;
@@ -37,6 +39,9 @@ do {
         if (result == GameResult.InProgress && (move.IsCapture || move.MovePieceType == Pawn 
                              || (move.MovePieceType is King or Rook && move.StartSquare.Rank == (whiteToMove ? 0 : 7)))) {
             Bot_1337.trimCache(apiBoard);
+            #if DEBUG_MONOTONIC_KEY
+            Console.Error.WriteLine("Monotonic key after {0} ({1}) is {2}", move, moveNameSan, Bot_1337.currentMonotonicKey);
+            #endif
         }
     }
     whiteToMove = !whiteToMove;

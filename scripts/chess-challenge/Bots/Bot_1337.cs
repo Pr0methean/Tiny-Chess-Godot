@@ -1,3 +1,5 @@
+//#define DEBUG_MONOTONIC_KEY
+
 using System.Diagnostics;
 using static ChessChallenge.API.PieceType;
 using static System.Numerics.BitOperations;
@@ -67,7 +69,7 @@ public class Bot_1337 : IChessBot {
     }
 
     private static readonly SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
-    private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
+    public static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
     // Sorts pawn promotions first, then moves that push toward the back rank next.
@@ -129,6 +131,11 @@ public class Bot_1337 : IChessBot {
         foreach (var move in legalMoves) {
             bool unquiet = isUnquietMove(move);
             board.MakeMove(move);
+            #if DEBUG_MONOTONIC_KEY
+                        if (move.IsCapture || move.MovePieceType == Pawn || (move.MovePieceType is King or Rook && move.StartSquare.Rank == (iAmWhite ? 0 : 7))) {
+                            Console.Error.WriteLine("At ply {0}, monotonic key after {1} would be {2}", board.PlyCount, move, Bot_1337.monotonicKey(board));
+                        }
+            #endif
             if (!unquiet && board.IsInCheck()) {
                 unquiet = true;
             }
@@ -329,6 +336,7 @@ public class Bot_1337 : IChessBot {
                 sbyte nextQuietDepth;
                 bool unquiet = isUnquietMove(move);
                 board.MakeMove(move);
+
                 if (!unquiet && board.IsInCheck()) {
                     unquiet = true;
                 }
