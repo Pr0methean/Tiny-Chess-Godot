@@ -18,18 +18,12 @@ do {
     Bot_1337 botToMove = whiteToMove ? white : black;
     ChessChallenge.API.Move move = botToMove.Think(apiBoard, new Timer(2000));
     Move cccMove = new Move(move.RawValue);
+    string moveNameSan = MoveUtility.GetMoveNameSAN(cccMove, board);
     if (plyCount % 2 == 0)
     {
-        Console.Write(plyCount / 2 + 1 + ". ");
-    }
-
-    string moveNameSan = MoveUtility.GetMoveNameSAN(cccMove, board);
-    Console.Write(moveNameSan);
-    if (plyCount % 2 != 0)
-    {
-        Console.WriteLine();
+        Console.Write("{0}. {1}  ", plyCount / 2 + 1, moveNameSan);
     } else {
-        Console.Write("  ");
+        Console.WriteLine(moveNameSan);
     }
     if (moveNameSan.EndsWith('#')) {
         result = whiteToMove ? GameResult.BlackIsMated : GameResult.WhiteIsMated;
@@ -47,5 +41,4 @@ do {
     }
     whiteToMove = !whiteToMove;
 } while (result == GameResult.InProgress);
-Console.WriteLine();
-Console.WriteLine(result);
+Console.WriteLine("\n{0}", result);
