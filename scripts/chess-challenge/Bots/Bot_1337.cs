@@ -102,8 +102,8 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
-        sortLegalMovesPromisingFirst(legalMoves);
         bool iAmWhite = board.IsWhiteToMove;
+        sortLegalMovesPromisingFirst(legalMoves, iAmWhite);
         foreach (var move in legalMoves) {
             bool unquiet = isUnquietMove(move);
             board.MakeMove(move);
@@ -302,7 +302,7 @@ public class Bot_1337 : IChessBot {
         score = maximizingPlayer ? -INFINITY : INFINITY;
         
         // Sort descending by promoted piece type, then by captured piece type
-        sortLegalMovesPromisingFirst(legalMoves);
+        sortLegalMovesPromisingFirst(legalMoves, maximizingPlayer);
         
         if (remainingTotalDepth > 0) {
             foreach (var move in legalMoves) {
