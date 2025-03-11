@@ -72,7 +72,8 @@ public class Bot_1337 : IChessBot {
         random.Shuffle(moves);
         moves.Sort((a, b) => {
             int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
-            return promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);  
+            int capturedPieceComparison = promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);
+            return capturedPieceComparison != 0 ? capturedPieceComparison : a.MovePieceType.CompareTo(b.MovePieceType);
         });
     }
 
