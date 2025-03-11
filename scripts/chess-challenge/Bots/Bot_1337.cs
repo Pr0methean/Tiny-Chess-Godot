@@ -344,6 +344,7 @@ public class Bot_1337 : IChessBot {
                     nextQuietDepth = (sbyte) Math.Min(remainingQuietDepth - 1, remainingTotalDepth - 1);
                 }
                 long eval = AlphaBeta(board, nextQuietDepth, (sbyte) (remainingTotalDepth - 1), alpha, beta, !maximizingPlayer, Bot_1337.monotonicKey(board), unquiet);
+                board.UndoMove(move);
                 if (maximizingPlayer) {
                     score = Math.Max(score, eval);
                     alpha = Math.Max(alpha, score);
