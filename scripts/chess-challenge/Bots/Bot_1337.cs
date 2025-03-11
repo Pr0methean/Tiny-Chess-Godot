@@ -19,7 +19,7 @@ public class Bot_1337 : IChessBot {
     private const int MAX_NUMBER_LEGAL_MOVES = 218; // R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1
 
     private const long MATERIAL_MULTIPLIER = 1_000_000;
-    private const long VALUE_PER_AVAILABLE_MOVE = 500_000;
+    private const long VALUE_PER_AVAILABLE_MOVE = 100_000;
     // private const long SAME_PIECE_OPENING_MOVE_PENALTY = 1_000_000;
     private const long CHECK_PENALTY = 75_000_000;
 
@@ -414,7 +414,7 @@ public class Bot_1337 : IChessBot {
         return evaluation;
     }
 
-    // Positive favors white. Cache shared between both sides.
+    // Positive favors white. 
     public static long EvaluateMaterial(Board board) {
         // Material and passed-pawn evaluation
         long evaluation = 0;
