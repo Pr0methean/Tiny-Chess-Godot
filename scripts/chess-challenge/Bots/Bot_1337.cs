@@ -1,4 +1,5 @@
 //#define DEBUG_MONOTONIC_KEY
+#define DEBUG_TRIM
 
 using System.Diagnostics;
 using static ChessChallenge.API.PieceType;
@@ -72,9 +73,9 @@ public class Bot_1337 : IChessBot {
     public static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
-    // Sorts pawn promotions first, then moves that push toward the back rank next.
-    private static void sortLegalMovesPromisingFirst(Span<Move> moves, bool iAmWhite) {
-        moves.Sort((a, b) => {
+    private class MoveComparer(bool iAmWhite) : Comparer<Move> {
+
+        public override int Compare(Move a, Move b) {
             int aRaw = a.RawValue;
             int bRaw = b.RawValue;
 
@@ -100,7 +101,15 @@ public class Bot_1337 : IChessBot {
             // Push to deeper ranks first
             return ((aRaw & 0b0000111000000000) - (bRaw & 0b0000111000000000))
                    * (iAmWhite ? -1 : 1);
-        });
+        }
+    }
+
+    private static MoveComparer WHITE_COMPARER = new(true);
+    private static MoveComparer BLACK_COMPARER = new(false);
+    
+    // Sorts pawn promotions first, then moves that push toward the back rank next.
+    private static void sortLegalMovesPromisingFirst(Span<Move> moves, bool iAmWhite) {
+        moves.Sort(iAmWhite ? WHITE_COMPARER : BLACK_COMPARER);
     }
 
     public Move Think(Board board, Timer timer) {
@@ -168,8 +177,23 @@ public class Bot_1337 : IChessBot {
         Debug.WriteLine("New monotonic key is {}", newCurrentMonotonicKey);
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         currentMonotonicKey = newCurrentMonotonicKey;
+        #if DEBUG_TRIM
+        long entriesRemoved = 0;
+        long keysRemoved = 0;
+        int maxPerKey = 0;
+        #endif
         alphaBetaCache.Keys.SkipWhile(k => k <= newCurrentMonotonicKey)
-            .ToList().ForEach(k => alphaBetaCache.Remove(k));
+            .ToList().ForEach(k => {
+                #if DEBUG_TRIM
+                    keysRemoved++;
+                    entriesRemoved += alphaBetaCache[k].Count;
+                    maxPerKey = Math.Max(maxPerKey, alphaBetaCache[k].Count);
+                #endif
+                alphaBetaCache.Remove(k);
+            });
+        #if DEBUG_TRIM
+        Console.Error.WriteLine("Removed {0} keys and {1} entries from cache (most for one key: {2})", keysRemoved, entriesRemoved, maxPerKey);
+        #endif
         currentKeyCache = null;
         alphaBetaCache.TryGetValue(currentMonotonicKey, out currentKeyCache);
     }
