@@ -369,7 +369,7 @@ public class Bot_1337 : IChessBot {
                 lowerBound = score;
                 upperBound = score;
             }
-            // Fall through to cache update only for new entries or when our search is shallower
+            // Fall through to cache update only for new entries or when our search is deeper
         }
         setAlphaBetaCacheEntry(monotonicKey, board, new CacheEntry(lowerBound, upperBound, remainingQuietDepth, remainingTotalDepth, result));
         if (score < alpha) {
