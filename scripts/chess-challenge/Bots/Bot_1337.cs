@@ -418,32 +418,29 @@ public class Bot_1337 : IChessBot {
     // Positive favors white. 
     public static long EvaluateMaterial(Board board) {
         // Material and passed-pawn evaluation
-        long evaluation = 0;
         if (isBareKing(board.WhitePiecesBitboard)) {
             //Debug.WriteLine("Skipping material evaluation: white is a bare king!");
-            evaluation = -BARE_KING_EVAL;
+            return -BARE_KING_EVAL;
         }
-        else if (isBareKing(board.BlackPiecesBitboard)) {
+        if (isBareKing(board.BlackPiecesBitboard)) {
             //Debug.WriteLine("Skipping material evaluation: black is a bare king!");
-            evaluation = BARE_KING_EVAL;
+            return BARE_KING_EVAL;
         }
-        else {
-            for (int square = 0; square < 64; square++) {
-                PieceType pieceType = board.GetPieceType(square);
-                bool pieceIsWhite = board.IsWhitePiece(square);
-                long pieceValue = PIECE_VALUES[(int)pieceType]; 
-                if (pieceType == Pawn) {
-                    int rank = square >> 3;
-                    pieceValue += (pieceIsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
-                        [rank];
-                }
-
-                evaluation += pieceValue * (pieceIsWhite ? 1 : -1);
+        long evaluation = 0;
+        for (int square = 0; square < 64; square++) {
+            PieceType pieceType = board.GetPieceType(square);
+            bool pieceIsWhite = board.IsWhitePiece(square);
+            long pieceValue = PIECE_VALUES[(int)pieceType]; 
+            if (pieceType == Pawn) {
+                int rank = square >> 3;
+                pieceValue += (pieceIsWhite ? WHITE_PASSED_PAWN_VALUES : BLACK_PASSED_PAWN_VALUES)
+                    [rank];
             }
 
-            //Debug.WriteLine("Material eval: {0}", evaluation);
+            evaluation += pieceValue * (pieceIsWhite ? 1 : -1);
         }
 
+        //Debug.WriteLine("Material eval: {0}", evaluation);
         return evaluation;
     }
 
