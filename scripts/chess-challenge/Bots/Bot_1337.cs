@@ -91,7 +91,7 @@ public class Bot_1337 : IChessBot {
             if (captureComparison != 0) {
                 return -captureComparison; // capture of stronger piece first
             }
-            int moveComparison = (int)a.MovePieceType - (int)b.MovePieceType);
+            int moveComparison = (int)a.MovePieceType - (int)b.MovePieceType;
             if (moveComparison != 0) {
                 return moveComparison; // move weaker piece first
             }
