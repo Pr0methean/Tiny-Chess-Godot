@@ -13,8 +13,8 @@ public class Bot_1337 : IChessBot {
     private const uint MAX_MONOTONIC_KEY = 2 * 16807U * 65535U 
                                            + 3 * (((((((((9 * 5 + 9) * 5 + 1) * 5 + 1) * 5 + 1) * 5 + 1) * 11 + 2) * 11 + 2) * 11 + 2) * 11 + 2)
                                            + 127 * (1 << 19 - 1) * 15U;
-    private const byte QUIET_DEPTH = 4;
-    private const byte MAX_TOTAL_DEPTH = 6;
+    private const byte QUIET_DEPTH = 3;
+    private const byte MAX_TOTAL_DEPTH = 8;
     private const long INFINITY = 1_000_000_000_000_000;
     private const int MAX_NUMBER_LEGAL_MOVES = 218; // R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1
 
