@@ -1,7 +1,6 @@
 //#define DEBUG_MONOTONIC_KEY
 //#define DEBUG_TRIM
 
-using System.Collections.Specialized;
 using System.Diagnostics;
 using static ChessChallenge.API.PieceType;
 using static System.Numerics.BitOperations;
@@ -70,9 +69,9 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static readonly SortedDictionary<uint, HybridDictionary> alphaBetaCache = new();
+    private static readonly SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
     public static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
-    private static HybridDictionary? currentKeyCache;
+    private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
     private class MoveComparer(bool iAmWhite) : Comparer<Move> {
 
@@ -105,8 +104,8 @@ public class Bot_1337 : IChessBot {
         }
     }
 
-    private static Comparison<Move> WHITE_COMPARER = new MoveComparer(true).Compare;
-    private static Comparison<Move> BLACK_COMPARER = new MoveComparer(false).Compare;
+    private static MoveComparer WHITE_COMPARER = new(true);
+    private static MoveComparer BLACK_COMPARER = new(false);
     
     // Sorts pawn promotions first, then moves that push toward the back rank next.
     private static void sortLegalMovesPromisingFirst(Span<Move> moves, bool iAmWhite) {
@@ -183,9 +182,8 @@ public class Bot_1337 : IChessBot {
         long keysRemoved = 0;
         int maxPerKey = 0;
         #endif
-        var keysToDelete = alphaBetaCache.Keys.SkipWhile(k => k <= newCurrentMonotonicKey).ToList();
-        bool anythingDeleted = keysToDelete.Count > 0;
-        keysToDelete.ForEach(k => {
+        alphaBetaCache.Keys.SkipWhile(k => k <= newCurrentMonotonicKey)
+            .ToList().ForEach(k => {
                 #if DEBUG_TRIM
                     keysRemoved++;
                     entriesRemoved += alphaBetaCache[k].Count;
@@ -198,9 +196,6 @@ public class Bot_1337 : IChessBot {
         #endif
         currentKeyCache = null;
         alphaBetaCache.TryGetValue(currentMonotonicKey, out currentKeyCache);
-        if (anythingDeleted) {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
-        }
     }
 
     public static uint monotonicKey(Board board) {
@@ -261,7 +256,7 @@ public class Bot_1337 : IChessBot {
         if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        HybridDictionary? cacheForMonotonicKey;
+        Dictionary<ulong, CacheEntry>? cacheForMonotonicKey;
         if (monotonicKey == currentMonotonicKey) {
             cacheForMonotonicKey = currentKeyCache;
         }
@@ -272,23 +267,25 @@ public class Bot_1337 : IChessBot {
             return null;
         }
         ulong zobristKey = board.ZobristKey;
-        return (CacheEntry?) cacheForMonotonicKey[zobristKey];
+        if (cacheForMonotonicKey.TryGetValue(zobristKey, out var entry)) {
+            return entry;
+        }
+        return null;
     }
     
     private static void setAlphaBetaCacheEntry(uint monotonicKey, Board board, CacheEntry value) {
-        const int initialCapacity = 64;
         ulong zobristKey = board.ZobristKey;
         if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
         if (monotonicKey != currentMonotonicKey) {
             if (!alphaBetaCache.TryGetValue(monotonicKey, out var tableForKey)) {
-                tableForKey = new HybridDictionary(1);
+                tableForKey = new Dictionary<ulong, CacheEntry>(1);
                 alphaBetaCache[monotonicKey] = tableForKey;
             }
             tableForKey[zobristKey] = value;
         } else if (currentKeyCache == null) {
-            currentKeyCache = new HybridDictionary(1);
+            currentKeyCache = new Dictionary<ulong, CacheEntry>();
             currentKeyCache[zobristKey] = value;
             alphaBetaCache.Add(monotonicKey, currentKeyCache);
         }
