@@ -10,9 +10,11 @@ using System;
 using ChessChallenge.API;
 
 public class Bot_1337 : IChessBot {
-    private const uint MAX_MONOTONIC_KEY = 2 * 16807U * 65535U 
-                                           + 3 * (((((((((9 * 5 + 9) * 5 + 1) * 5 + 1) * 5 + 1) * 5 + 1) * 11 + 2) * 11 + 2) * 11 + 2) * 11 + 2)
-                                           + 127 * (1 << 19 - 1) * 15U;
+    private const uint MAX_MONOTONIC_KEY = 16807 * 65535 
+                                           + 127 * (1 << 19 - 1) * 15
+                                           + (uint) (7 << 28)
+                                           + (uint) (2 << 28)
+                                           + (uint) ((9 << 24) + (9 << 21) + (9 << 18) + (10 << 15) + (10 << 12) + (10 << 9) + (10 << 6) + (10 << 3) + 10);
     private const byte QUIET_DEPTH = 3;
     private const byte MAX_TOTAL_DEPTH = 8;
     private const long INFINITY = 1_000_000_000_000_000;
@@ -169,32 +171,32 @@ public class Bot_1337 : IChessBot {
         const ulong LIGHT_SQUARES = 0x55aa_55aa_55aa_55aa;
         const ulong DARK_SQUARES = ~LIGHT_SQUARES;
         uint blackPawnCount = (uint) PopCount(blackPawnBitboard);
-        uint blackPawnsAndDarkBishops = blackPawnCount + (uint) PopCount(blackBishopBitboard & DARK_SQUARES);
-        uint blackLightBishops = (uint)PopCount(blackBishopBitboard & LIGHT_SQUARES);
-        uint blackKnights = (uint) PopCount(board.GetPieceBitboard(Knight, false));
-        uint blackRooks = (uint) PopCount(board.GetPieceBitboard(Rook, false));
-        uint blackQueens = (uint) PopCount(board.GetPieceBitboard(Queen, false));
+        uint blackPawnsAndDarkBishops = blackPawnCount +  (uint) PopCount(blackBishopBitboard & DARK_SQUARES);
+        uint blackPawnsAndLightBishops = blackPawnCount + (uint) PopCount(blackBishopBitboard & LIGHT_SQUARES);
+        uint blackPawnsAndKnights = blackPawnCount + (uint) PopCount(board.GetPieceBitboard(Knight, false));
+        uint blackPawnsAndRooks = blackPawnCount + (uint) PopCount(board.GetPieceBitboard(Rook, false));
+        uint blackPawnsAndQueens = blackPawnCount + (uint) PopCount(board.GetPieceBitboard(Queen, false));
         uint whitePawnCount = (uint) PopCount(whitePawnBitboard);
-        uint whitePawnsAndLightBishops = whitePawnCount + (uint)PopCount(whiteBishopBitboard & LIGHT_SQUARES);
-        uint whiteDarkBishops = (uint) PopCount(whiteBishopBitboard & DARK_SQUARES);
-        uint whiteKnights = (uint) PopCount(board.GetPieceBitboard(Knight, true));
-        uint whiteRooks = (uint) PopCount(board.GetPieceBitboard(Rook, true));
-        uint whiteQueens = (uint) PopCount(board.GetPieceBitboard(Queen, true));
-        uint nonKingPiecesKey = ((((((((blackPawnsAndDarkBishops * 5
-                                        + whitePawnsAndLightBishops) * 5
-                                        + blackLightBishops) * 5
-                                        + whiteDarkBishops) * 5
-                                      + blackQueens) * 5
-                                    + whiteQueens) * 11
-                                   + blackKnights) * 11
-                                  + blackRooks) * 11
-                                 + whiteKnights) * 11
-                                + whiteRooks;
+        uint whitePawnsAndLightBishops = whitePawnCount + (uint) PopCount(whiteBishopBitboard & LIGHT_SQUARES);
+        uint whitePawnsAndDarkBishops = whitePawnCount + (uint) PopCount(whiteBishopBitboard & DARK_SQUARES);
+        uint whitePawnsAndKnights = whitePawnCount + (uint) PopCount(board.GetPieceBitboard(Knight, true));
+        uint whitePawnsAndRooks = whitePawnCount + (uint) PopCount(board.GetPieceBitboard(Rook, true));
+        uint whitePawnsAndQueens = whitePawnCount + (uint) PopCount(board.GetPieceBitboard(Queen, true));
+        uint nonKingPiecesKey =  (blackPawnsAndDarkBishops << 28)
+            + (whitePawnsAndLightBishops << 24)
+            + (blackPawnsAndLightBishops << 21)
+            + (whitePawnsAndDarkBishops << 18)
+            + (blackPawnsAndQueens << 15)
+            + (whitePawnsAndQueens << 12)
+            + (blackPawnsAndKnights << 9)
+            + (blackPawnsAndRooks << 6)
+            + (whitePawnsAndKnights << 3)
+            + whitePawnsAndRooks;
         uint castlingKey = (uint) ((board.HasQueensideCastleRight(true) ? 1 : 0)
                                                                    | (board.HasKingsideCastleRight(false) ? 2 : 0)
                                                                    | (board.HasKingsideCastleRight(true) ? 4 : 0)
                                                                    | (board.HasQueensideCastleRight(false) ? 8 : 0));
-        return 2 * pawnsKey + 3 * nonKingPiecesKey + 127 * (1<<19 - 1) * castlingKey;
+        return pawnsKey + nonKingPiecesKey + 127 * (1<<19 - 1) * castlingKey;
     }
 
     public static CacheEntry? getAlphaBetaCacheEntry(uint monotonicKey, Board board) {
