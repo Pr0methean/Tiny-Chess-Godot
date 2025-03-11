@@ -70,12 +70,12 @@ public class Bot_1337 : IChessBot {
     private static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
-    private static void sortLegalMovesPromisingFirst(ref Span<Move> moves) {
-        random.Shuffle(moves);
+    private static void sortLegalMovesPromisingFirst(Span<Move> moves, bool iAmWhite) {
         moves.Sort((a, b) => {
             int promotionComparison = -a.PromotionPieceType.CompareTo(b.PromotionPieceType);
             int capturedPieceComparison = promotionComparison != 0 ? promotionComparison : -a.CapturePieceType.CompareTo(b.CapturePieceType);
-            return capturedPieceComparison != 0 ? capturedPieceComparison : a.MovePieceType.CompareTo(b.MovePieceType);
+            int movePieceTypeComparison = capturedPieceComparison != 0 ? capturedPieceComparison : a.MovePieceType.CompareTo(b.MovePieceType);
+            return movePieceTypeComparison != 0 ? movePieceTypeComparison : a.TargetSquare.Rank.CompareTo(b.TargetSquare.Rank) * (iAmWhite ? -1 : 1);
         });
     }
 
@@ -102,7 +102,7 @@ public class Bot_1337 : IChessBot {
         long bestValue = long.MinValue;
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
-        sortLegalMovesPromisingFirst(ref legalMoves);
+        sortLegalMovesPromisingFirst(legalMoves);
         bool iAmWhite = board.IsWhiteToMove;
         foreach (var move in legalMoves) {
             bool unquiet = isUnquietMove(move);
@@ -302,7 +302,7 @@ public class Bot_1337 : IChessBot {
         score = maximizingPlayer ? -INFINITY : INFINITY;
         
         // Sort descending by promoted piece type, then by captured piece type
-        sortLegalMovesPromisingFirst(ref legalMoves);
+        sortLegalMovesPromisingFirst(legalMoves);
         
         if (remainingTotalDepth > 0) {
             foreach (var move in legalMoves) {
