@@ -381,7 +381,7 @@ public class Bot_1337 : IChessBot {
     }
 
     private static bool isUnquietMove(Move move) {
-        return move.IsCapture || move.MovePieceType == Pawn;
+        return move.IsCapture || move.IsPromotion || (move.MovePieceType == Pawn && move.TargetSquare.Rank is 1 or 6);
     }
 
     // Positive favors white
