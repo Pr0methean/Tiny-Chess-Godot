@@ -80,23 +80,23 @@ public class Bot_1337 : IChessBot {
             if ((aRaw & 0b0100000000000000) != 0) {
                 if ((bRaw & 0b0100000000000000) != 0) {
                     // lower flag = promoting to stronger piece
-                    return (aRaw & 0b0011000000000000).CompareTo(bRaw & 0b0011000000000000);
+                    return (aRaw & 0b0011000000000000) - (bRaw & 0b0011000000000000);
                 }
                 return -1; // promotion a before non-promotion b
             }
             if ((bRaw & 0b0100000000000000) != 0) {
                 return 1; // promotion b before non-promotion a
             }
-            int captureComparison = a.CapturePieceType.CompareTo(b.CapturePieceType);
+            int captureComparison = (int)a.CapturePieceType - (int)b.CapturePieceType;
             if (captureComparison != 0) {
                 return -captureComparison; // capture of stronger piece first
             }
-            int moveComparison = a.MovePieceType.CompareTo(b.MovePieceType);
+            int moveComparison = (int)a.MovePieceType - (int)b.MovePieceType);
             if (moveComparison != 0) {
                 return moveComparison; // move weaker piece first
             }
             // Push to deeper ranks first
-            return (aRaw & 0b0000111000000000).CompareTo(bRaw & 0b0000111000000000)
+            return ((aRaw & 0b0000111000000000) - (bRaw & 0b0000111000000000))
                    * (iAmWhite ? -1 : 1);
         });
     }
