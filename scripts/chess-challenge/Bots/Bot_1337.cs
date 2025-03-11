@@ -285,29 +285,18 @@ public class Bot_1337 : IChessBot {
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry && (cacheEntry.RemainingTotalDepth < remainingTotalDepth 
                                        || (cacheEntry.RemainingTotalDepth == remainingTotalDepth && cacheEntry.RemainingQuietDepth < remainingQuietDepth))) {
-            // For positions after unquiet moves, use cached bounds more conservatively
-            if (previousMoveWasUnquiet || isInCheck) {
-                // Only use definitive cutoffs from cached bounds
-                if (cacheEntry.LowerBound >= beta) {
-                    return beta;  // Safe beta cutoff
-                }
-                if (cacheEntry.UpperBound <= alpha) {
-                    return alpha; // Safe alpha cutoff
-                }
-                // Don't update intermediate bounds after unquiet moves
-            }
-            
-            // For quiet positions, use full cached information
+            // Always use definitive cutoffs
             if (cacheEntry.LowerBound >= beta) {
-                return cacheEntry.LowerBound;
+                return beta;  // Safe beta cutoff
             }
             if (cacheEntry.UpperBound <= alpha) {
-                return cacheEntry.UpperBound;
+                return alpha; // Safe alpha cutoff
             }
-            alpha = Math.Max(alpha, cacheEntry.LowerBound);
-            beta = Math.Min(beta, cacheEntry.UpperBound);
+            if (!previousMoveWasUnquiet && !isInCheck) {
+                alpha = Math.Max(alpha, cacheEntry.LowerBound);
+                beta = Math.Min(beta, cacheEntry.UpperBound);
+            }
         }
-
         Span<Move> legalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
         board.GetLegalMovesNonAlloc(ref legalMoves);
         if (legalMoves.Length == 0) {
@@ -323,10 +312,9 @@ public class Bot_1337 : IChessBot {
         bool foundNonQuietMove = false;
         score = maximizingPlayer ? -INFINITY : INFINITY;
         
-        // Sort descending by promoted piece type, then by captured piece type
-        sortLegalMovesPromisingFirst(legalMoves, maximizingPlayer);
-        
         if (remainingTotalDepth > 0) {
+            // Sort descending by promoted piece type, then by captured piece type
+            sortLegalMovesPromisingFirst(legalMoves, maximizingPlayer);
             foreach (var move in legalMoves) {
                 sbyte nextQuietDepth;
                 bool unquiet = isUnquietMove(move);
