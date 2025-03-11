@@ -283,15 +283,25 @@ public class Bot_1337 : IChessBot {
             goto cacheStore;
         }
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
-        if (entry is {} cacheEntry && (cacheEntry.RemainingTotalDepth < remainingTotalDepth 
-                                       || (cacheEntry.RemainingTotalDepth == remainingTotalDepth && cacheEntry.RemainingQuietDepth < remainingQuietDepth))) {
+        if (entry is {} cacheEntry) {
+            if (cacheEntry.Result != GameResult.InProgress) {
+                return cacheEntry.UpperBound;
+            }
+            if (cacheEntry.RemainingTotalDepth <= remainingTotalDepth &&
+                cacheEntry.RemainingQuietDepth <= remainingQuietDepth
+                    && cacheEntry.LowerBound == cacheEntry.UpperBound) {
+                // Equal or greater depth - use cached value
+                return cacheEntry.LowerBound;
+            }
             // Always use definitive cutoffs
             if (cacheEntry.LowerBound >= beta) {
-                return beta;  // Safe beta cutoff
+                return beta; // Safe beta cutoff
             }
+
             if (cacheEntry.UpperBound <= alpha) {
                 return alpha; // Safe alpha cutoff
             }
+
             if (!previousMoveWasUnquiet && !isInCheck) {
                 alpha = Math.Max(alpha, cacheEntry.LowerBound);
                 beta = Math.Min(beta, cacheEntry.UpperBound);
