@@ -37,7 +37,7 @@ public class Bot_1337 : IChessBot {
     private static readonly long[] WHITE_RANK_ADVANCEMENT_VALUES = [0, 3, 6, 9, 11, 13, 14, 15];
     private static readonly long[] BLACK_RANK_ADVANCEMENT_VALUES = [15, 14, 13, 11, 9, 6, 3, 0];
     private static Random random = new();
-    private const long BARE_KING_EVAL = 100_000_000_000L;
+    private const long BARE_KING_EVAL = 1_000_000L;
     public static bool firstNonBookMove = false;
 
     // Make the struct readonly and add StructLayout attribute
@@ -58,7 +58,7 @@ public class Bot_1337 : IChessBot {
 
             RemainingQuietDepth = remainingQuietDepth;
             RemainingTotalDepth = remainingTotalDepth;
-            this.Result = result;
+            Result = result;
             LowerBound = lowerBound;
             UpperBound = upperBound;
         }
