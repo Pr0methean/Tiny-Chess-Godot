@@ -72,13 +72,7 @@ public class Bot_1337 : IChessBot {
     private static readonly SortedDictionary<uint, Dictionary<ulong, CacheEntry>> alphaBetaCache = new();
     private static readonly SortedDictionary<uint, KeyValuePair<ulong, CacheEntry>> sparseAlphaBetaCache = new();
     public static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
-    private static Dictionary<ulong, CacheEntry> currentKeyCache;
-
-    static Bot_1337() {
-        // Initialize the cache
-        currentKeyCache = new();
-        alphaBetaCache[MAX_MONOTONIC_KEY] = currentKeyCache;
-    }
+    private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
     private class MoveComparer(bool iAmWhite) : Comparer<Move> {
 
@@ -209,10 +203,7 @@ public class Bot_1337 : IChessBot {
         #if DEBUG_TRIM
         Console.Error.WriteLine("Removed {0} keys and {1} entries from cache (most for one key: {2})", keysRemoved, entriesRemoved, maxPerKey);
         #endif
-        if (!alphaBetaCache.TryGetValue(currentMonotonicKey, out currentKeyCache)) {
-            currentKeyCache = new Dictionary<ulong, CacheEntry>(2);
-            alphaBetaCache.Add(currentMonotonicKey, currentKeyCache);
-        }
+        currentKeyCache = null;
     }
 
     public static uint monotonicKey(Board board) {
@@ -274,18 +265,24 @@ public class Bot_1337 : IChessBot {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
         Dictionary<ulong, CacheEntry>? cacheForMonotonicKey;
-        if (monotonicKey == currentMonotonicKey) {
+        ulong zobristKey = board.ZobristKey;
+        if (monotonicKey == currentMonotonicKey && currentKeyCache != null) {
             cacheForMonotonicKey = currentKeyCache;
         }
         else {
             alphaBetaCache.TryGetValue(monotonicKey, out cacheForMonotonicKey);
-        }
-        ulong zobristKey = board.ZobristKey;
-        if (cacheForMonotonicKey == null) {
-            if (sparseAlphaBetaCache.TryGetValue(monotonicKey, out var sparsePair) && sparsePair.Key == zobristKey) {
-                return sparsePair.Value;
+            if (cacheForMonotonicKey == null) {
+                if (sparseAlphaBetaCache.TryGetValue(monotonicKey, out var sparsePair) &&
+                    sparsePair.Key == zobristKey) {
+                    return sparsePair.Value;
+                }
+
+                return null;
             }
-            return null;
+
+            if (monotonicKey == currentMonotonicKey) {
+                currentKeyCache = cacheForMonotonicKey;
+            }
         }
         if (cacheForMonotonicKey.TryGetValue(zobristKey, out var entry)) {
             return entry;
@@ -298,17 +295,22 @@ public class Bot_1337 : IChessBot {
         if (monotonicKey > currentMonotonicKey) {
             throw new ArgumentException("Key exceeds what's already been eliminated");
         }
-        if (monotonicKey != currentMonotonicKey) {
-            if (!alphaBetaCache.TryGetValue(monotonicKey, out var tableForKey)) {
-                if (sparseAlphaBetaCache.TryGetValue(monotonicKey, out var sparseKeyValuePair)) {
-                    tableForKey = new Dictionary<ulong, CacheEntry>(2);
-                    tableForKey[sparseKeyValuePair.Key] = sparseKeyValuePair.Value;
-                    sparseAlphaBetaCache.Remove(monotonicKey);
-                    tableForKey[zobristKey] = value;
+        if (monotonicKey == currentMonotonicKey && currentKeyCache != null) {
+            currentKeyCache[zobristKey] = value;
+            return;
+        }
+        if (!alphaBetaCache.TryGetValue(monotonicKey, out var tableForKey)) {
+            if (sparseAlphaBetaCache.TryGetValue(monotonicKey, out var sparseKeyValuePair)) {
+                tableForKey = new Dictionary<ulong, CacheEntry>(2);
+                tableForKey[sparseKeyValuePair.Key] = sparseKeyValuePair.Value;
+                sparseAlphaBetaCache.Remove(monotonicKey);
+                tableForKey[zobristKey] = value;
+                if (monotonicKey == currentMonotonicKey) {
+                    currentKeyCache = tableForKey;
                 }
-                else {
-                    sparseAlphaBetaCache[monotonicKey] = new KeyValuePair<ulong, CacheEntry>(zobristKey, value);   
-                }
+            }
+            else {
+                sparseAlphaBetaCache[monotonicKey] = new KeyValuePair<ulong, CacheEntry>(zobristKey, value);   
             }
         }
     }
