@@ -50,7 +50,7 @@ public class Bot_1337 : IChessBot {
     public readonly record struct CacheEntry {
         public long LowerBound { get; }
         public long UpperBound { get; }
-        public GameResult Result { get; }
+        public byte Result { get; }
         public sbyte RemainingQuietDepth { get; }
         public sbyte RemainingTotalDepth { get; }
 
@@ -63,7 +63,7 @@ public class Bot_1337 : IChessBot {
 
             RemainingQuietDepth = remainingQuietDepth;
             RemainingTotalDepth = remainingTotalDepth;
-            Result = result;
+            Result = (byte) result;
             LowerBound = lowerBound;
             UpperBound = upperBound;
         }
@@ -323,7 +323,7 @@ public class Bot_1337 : IChessBot {
         }
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry) {
-            if (cacheEntry.Result != GameResult.InProgress) {
+            if (cacheEntry.Result != (byte) GameResult.InProgress) {
                 return cacheEntry.UpperBound;
             }
             if (cacheEntry.RemainingTotalDepth <= remainingTotalDepth &&
@@ -464,7 +464,7 @@ public class Bot_1337 : IChessBot {
             board.MakeMove(Move.NullMove);
             // Use cache to check if null move led to a known game-over state
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
-            if (entry is not {} cacheEntry || cacheEntry.Result == GameResult.InProgress) {
+            if (entry is not {} cacheEntry || cacheEntry.Result == (byte) GameResult.InProgress) {
                 Span<Move> opponentLegalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
                 evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
