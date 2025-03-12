@@ -183,16 +183,10 @@ public class Bot_1337 : IChessBot {
         foreach (var key in toRemove) {
             alphaBetaCache.Remove(key);
         }
-        bool anythingDeleted = false;
         foreach (var key in toRemove.ToList()) {
-            anythingDeleted = true;
             sortedKeys.Remove(key);
         }
-        
         currentKeyCache = null;
-        if (anythingDeleted) {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
-        }
     }
 
 
