@@ -1,7 +1,6 @@
 //#define DEBUG_MONOTONIC_KEY
 //#define DEBUG_TRIM
 
-using System.Diagnostics;
 using static ChessChallenge.API.PieceType;
 using static System.Numerics.BitOperations;
 using System.Runtime.InteropServices;
@@ -50,9 +49,10 @@ public class Bot_1337 : IChessBot {
     public readonly record struct CacheEntry {
         public long LowerBound { get; }
         public long UpperBound { get; }
-        public byte Result { get; }
-        public sbyte RemainingQuietDepth { get; }
-        public sbyte RemainingTotalDepth { get; }
+        private readonly sbyte extraData;
+        public GameResult Result => (extraData >= 0) ? GameResult.InProgress : (GameResult) (1 - extraData);
+        public sbyte RemainingQuietDepth => (sbyte) (extraData >> 4);
+        public sbyte RemainingTotalDepth => (sbyte)((extraData & 0b00001111) - (extraData < 0 ? 16 : 0));
 
         public CacheEntry(long lowerBound, long upperBound, sbyte remainingQuietDepth, sbyte remainingTotalDepth, GameResult result) {
             // Add validation
@@ -60,10 +60,19 @@ public class Bot_1337 : IChessBot {
                 throw new ArgumentException("Total depth must be >= quiet depth");
             if (upperBound < lowerBound)
                 throw new ArgumentException("Upper bound must be >= lower bound");
+            if (result == GameResult.InProgress) {
+                if (remainingTotalDepth is < 0 or > 15) {
+                    throw new ArgumentException("Total depth must be between 0 and 15 inclusive");
+                }
 
-            RemainingQuietDepth = remainingQuietDepth;
-            RemainingTotalDepth = remainingTotalDepth;
-            Result = (byte) result;
+                if (remainingQuietDepth is < 0 or > 7) {
+                    throw new ArgumentException("Quiet depth must be between 0 and 7 inclusive");
+                }
+                extraData = (sbyte) (remainingQuietDepth << 4 | remainingTotalDepth);
+            }
+            else {
+                extraData = (sbyte)(-1 - result);
+            }
             LowerBound = lowerBound;
             UpperBound = upperBound;
         }
@@ -323,7 +332,7 @@ public class Bot_1337 : IChessBot {
         }
         var entry = getAlphaBetaCacheEntry(monotonicKey, board);
         if (entry is {} cacheEntry) {
-            if (cacheEntry.Result != (byte) GameResult.InProgress) {
+            if (cacheEntry.Result != GameResult.InProgress) {
                 return cacheEntry.UpperBound;
             }
             if (cacheEntry.RemainingTotalDepth <= remainingTotalDepth &&
@@ -464,7 +473,7 @@ public class Bot_1337 : IChessBot {
             board.MakeMove(Move.NullMove);
             // Use cache to check if null move led to a known game-over state
             var entry = getAlphaBetaCacheEntry(monotonicKey, board);
-            if (entry is not {} cacheEntry || cacheEntry.Result == (byte) GameResult.InProgress) {
+            if (entry is not {} cacheEntry || cacheEntry.Result == GameResult.InProgress) {
                 Span<Move> opponentLegalMoves = stackalloc Move[MAX_NUMBER_LEGAL_MOVES];
                 board.GetLegalMovesNonAlloc(ref opponentLegalMoves);
                 evaluation -= VALUE_PER_AVAILABLE_MOVE * opponentLegalMoves.Length * (isWhite ? 1 : -1);
