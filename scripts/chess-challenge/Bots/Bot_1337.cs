@@ -179,15 +179,18 @@ public class Bot_1337 : IChessBot {
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         currentMonotonicKey = newCurrentMonotonicKey;
 
-        var toRemove = sortedKeys.GetViewBetween(newCurrentMonotonicKey + 1, uint.MaxValue).ToList();
+        var toRemove = sortedKeys.GetViewBetween(newCurrentMonotonicKey + 1, uint.MaxValue);
         foreach (var key in toRemove) {
             alphaBetaCache.Remove(key);
+        }
+        bool anythingDeleted = false;
+        foreach (var key in toRemove.ToList()) {
+            anythingDeleted = true;
             sortedKeys.Remove(key);
         }
         
         currentKeyCache = null;
-        if (toRemove.Count > 0) {
-            toRemove.Clear();
+        if (anythingDeleted) {
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
         }
     }
