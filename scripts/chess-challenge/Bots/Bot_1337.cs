@@ -68,8 +68,7 @@ public class Bot_1337 : IChessBot {
             UpperBound = upperBound;
         }
     }
-
-    private static readonly SortedDictionary<uint, OneOf.OneOf<Dictionary<ulong, CacheEntry>, KeyValuePair<ulong, CacheEntry>>> alphaBetaCache = new();
+    
     public static uint currentMonotonicKey = MAX_MONOTONIC_KEY;
     private static Dictionary<ulong, CacheEntry>? currentKeyCache;
 
@@ -171,35 +170,28 @@ public class Bot_1337 : IChessBot {
         return bestMove;
     }
 
+    private static readonly SortedSet<uint> sortedKeys = new();
+    private static readonly Dictionary<uint, OneOf.OneOf<Dictionary<ulong, CacheEntry>, KeyValuePair<ulong, CacheEntry>>> alphaBetaCache = new();
+
     public static void trimCache(Board board) {
         if (!firstNonBookMove) return;
         uint newCurrentMonotonicKey = monotonicKey(board);
-        Debug.WriteLine("New monotonic key is {}", newCurrentMonotonicKey);
         if (currentMonotonicKey <= newCurrentMonotonicKey) return;
         currentMonotonicKey = newCurrentMonotonicKey;
-        #if DEBUG_TRIM
-        long entriesRemoved = 0;
-        long keysRemoved = 0;
-        int maxPerKey = 0;
-        #endif
-        var toRemove = alphaBetaCache.Keys.Reverse().TakeWhile(k => k > newCurrentMonotonicKey).ToList();
-        bool removedAny = toRemove.Count > 0;
-        toRemove.ForEach(k => {
-                #if DEBUG_TRIM
-                    keysRemoved++;
-                    entriesRemoved += alphaBetaCache[k].Count;
-                    maxPerKey = Math.Max(maxPerKey, alphaBetaCache[k].Count);
-                #endif
-                alphaBetaCache.Remove(k);
-            });
-        #if DEBUG_TRIM
-        Console.Error.WriteLine("Removed {0} keys and {1} entries from cache (most for one key: {2})", keysRemoved, entriesRemoved, maxPerKey);
-        #endif
+
+        var toRemove = sortedKeys.GetViewBetween(newCurrentMonotonicKey + 1, uint.MaxValue).ToList();
+        foreach (var key in toRemove) {
+            alphaBetaCache.Remove(key);
+            sortedKeys.Remove(key);
+        }
+        
         currentKeyCache = null;
-        if (removedAny) {
+        if (toRemove.Count > 0) {
+            toRemove.Clear();
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, true, true);
         }
     }
+
 
     public static uint monotonicKey(Board board) {
         ulong whitePawnBitboard = board.GetPieceBitboard(Pawn, true);
@@ -291,6 +283,7 @@ public class Bot_1337 : IChessBot {
             return;
         }
         if (!alphaBetaCache.TryGetValue(monotonicKey, out var tableForKey)) {
+            sortedKeys.Add(monotonicKey);
             alphaBetaCache[monotonicKey] = new KeyValuePair<ulong, CacheEntry>(zobristKey, value);
         }
         else {
