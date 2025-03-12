@@ -6,7 +6,7 @@
   "configProperties": {
     "System.GC.Concurrent": false,
     "System.GC.HighMemoryPercent": 90,
-    "System.GC.HeapHardLimitPercent": 90,
+    "System.GC.HeapHardLimitPercent": 30,
     "System.GC.RetainVM": false,
     "System.GC.Server": false
   }
